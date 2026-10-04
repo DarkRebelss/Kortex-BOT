@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { createCanvas, loadImage } from '@napi-rs/canvas';
 import { isSafeHttpUrl, safeFetch } from '../utils/security.js';
+import { EmojiCanvasHelper } from '../utils/emojiCanvas.js';
 function parseHex(hex) {
     let clean = hex.replace('#', '').trim();
     if (clean.length === 3) {
@@ -259,33 +260,20 @@ export class WelcomeCardGenerator {
         // Draw Avatar (Supports GIF, PNG, WebP with automatic fallback)
         let avatarLoaded = false;
         if (options.avatarUrl) {
-            const urlsToTry = [options.avatarUrl];
-            const cleanUrl = options.avatarUrl.replace(/\.(png|gif|webp|jpe?g)(\?.*)?$/i, '');
-            const isAnimated = options.avatarUrl.includes('a_') || options.avatarUrl.toLowerCase().includes('gif');
-            if (isAnimated) {
-                if (!urlsToTry.includes(`${cleanUrl}.gif`))
-                    urlsToTry.unshift(`${cleanUrl}.gif`);
-                if (!urlsToTry.includes(`${cleanUrl}.png`))
-                    urlsToTry.push(`${cleanUrl}.png`);
-                if (!urlsToTry.includes(`${cleanUrl}.webp`))
-                    urlsToTry.push(`${cleanUrl}.webp`);
-            }
-            else {
-                if (!urlsToTry.includes(`${cleanUrl}.png`))
-                    urlsToTry.unshift(`${cleanUrl}.png`);
-                if (!urlsToTry.includes(`${cleanUrl}.gif`))
-                    urlsToTry.push(`${cleanUrl}.gif`);
-                if (!urlsToTry.includes(`${cleanUrl}.webp`))
-                    urlsToTry.push(`${cleanUrl}.webp`);
-            }
-            // Also try Discord CDN if it's a media URL hash
+            const urlsToTry = [];
+            // If Discord CDN avatar, prioritize static .png frame to avoid animated GIF corruption
             const mediaMatch = options.avatarUrl.match(/avatars\/([^/]+)\/([^/.]+)/);
             if (mediaMatch) {
                 const uId = mediaMatch[1];
                 const aHash = mediaMatch[2];
-                const aExt = (aHash.startsWith('a_') || aHash.includes('gif')) ? 'gif' : 'png';
-                urlsToTry.push(`https://cdn.discordapp.com/avatars/${uId}/${aHash}.${aExt}?size=512`);
+                urlsToTry.push(`https://cdn.discordapp.com/avatars/${uId}/${aHash}.png?size=512`);
+                urlsToTry.push(`https://cdn.discordapp.com/avatars/${uId}/${aHash}.webp?size=512`);
             }
+            const cleanUrl = options.avatarUrl.replace(/\.(png|gif|webp|jpe?g)(\?.*)?$/i, '');
+            urlsToTry.push(`${cleanUrl}.png`);
+            urlsToTry.push(`${cleanUrl}.webp`);
+            urlsToTry.push(`${cleanUrl}.gif`);
+            urlsToTry.push(options.avatarUrl);
             for (const url of urlsToTry) {
                 if (!isSafeHttpUrl(url))
                     continue;
@@ -361,7 +349,8 @@ export class WelcomeCardGenerator {
         // Subtitle Pill Badge
         ctx.save();
         ctx.font = `bold 12px ${FONT_FAMILY}`;
-        const subWidth = ctx.measureText(subtitle).width + 30;
+        const subTokens = EmojiCanvasHelper.parse(subtitle);
+        const subWidth = EmojiCanvasHelper.measureWidth(ctx, subTokens, 12) + 36;
         ctx.fillStyle = palette.badgeBg;
         ctx.beginPath();
         ctx.roundRect(textX, 102, subWidth, 24, 12);
@@ -377,35 +366,41 @@ export class WelcomeCardGenerator {
         ctx.arc(textX + 13, 114, 4, 0, Math.PI * 2);
         ctx.fill();
         ctx.shadowBlur = 0;
-        ctx.fillStyle = palette.badgeText;
-        ctx.fillText(subtitle, textX + 23, 118);
+        await EmojiCanvasHelper.drawText(ctx, subtitle, textX + 23, 118, {
+            fontSize: 12,
+            fontFamily: FONT_FAMILY,
+            color: palette.badgeText,
+            baseline: 'alphabetic',
+        });
         ctx.restore();
         // Large Username with 3D drop shadow
         const defaultName = options.theme === 'crimson' || options.theme === 'goodbye' ? 'Eski Üye' : 'Yeni Üye';
         const username = options.username || defaultName;
         ctx.save();
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.95)';
-        ctx.shadowBlur = 14;
-        ctx.shadowOffsetY = 4;
-        ctx.fillStyle = '#ffffff';
         ctx.font = `bold 44px ${FONT_FAMILY}`;
-        let displayUsername = username;
-        const maxUserW = 440;
-        if (ctx.measureText(displayUsername).width > maxUserW) {
-            while (ctx.measureText(displayUsername + '...').width > maxUserW && displayUsername.length > 0) {
-                displayUsername = displayUsername.slice(0, -1);
-            }
-            displayUsername += '...';
-        }
-        ctx.fillText(displayUsername, textX, 178);
+        await EmojiCanvasHelper.drawText(ctx, username, textX, 178, {
+            fontSize: 44,
+            fontFamily: FONT_FAMILY,
+            color: '#ffffff',
+            maxWidth: 440,
+            shadowColor: 'rgba(0, 0, 0, 0.95)',
+            shadowBlur: 14,
+            shadowOffsetY: 4,
+            baseline: 'alphabetic',
+        });
         ctx.restore();
         // Welcome / Goodbye sentence
         const defaultText = options.theme === 'crimson' || options.theme === 'goodbye' ? 'Yolun açık olsun, tekrar bekleriz! 👋' : 'BROFIST Kabilesine Hoş geldin! 👊';
         const mainText = options.welcomeText || defaultText;
         ctx.save();
-        ctx.fillStyle = '#cbd5e1';
         ctx.font = `18px ${FONT_FAMILY}`;
-        ctx.fillText(mainText, textX, 226);
+        await EmojiCanvasHelper.drawText(ctx, mainText, textX, 226, {
+            fontSize: 18,
+            fontFamily: FONT_FAMILY,
+            color: '#cbd5e1',
+            maxWidth: 680,
+            baseline: 'alphabetic',
+        });
         ctx.restore();
         // Sleek cyber divider line with glowing center node
         ctx.save();
@@ -434,20 +429,30 @@ export class WelcomeCardGenerator {
         // Bottom left branding
         const brandingText = options.brandingText || 'Kortex';
         ctx.save();
-        ctx.fillStyle = palette.brandingColor;
         ctx.font = `bold 14px ${FONT_FAMILY}`;
-        ctx.fillText(brandingText, textX, 308);
+        await EmojiCanvasHelper.drawText(ctx, brandingText, textX, 308, {
+            fontSize: 14,
+            fontFamily: FONT_FAMILY,
+            color: palette.brandingColor,
+            baseline: 'alphabetic',
+        });
+        ctx.restore();
         // Bottom right slogan / stats
         const defaultSlogan = options.theme === 'crimson' || options.theme === 'goodbye' ? 'Disconnecting... ama izler kalır.' : 'Karanlıkta parlayan yeni bir yıldız.';
         const sloganText = options.sloganText || defaultSlogan;
         ctx.save();
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
-        ctx.shadowBlur = 8;
-        ctx.shadowOffsetY = 1;
-        ctx.fillStyle = palette.sloganColor;
         ctx.font = `600 13.5px ${FONT_FAMILY}`;
-        ctx.textAlign = 'right';
-        ctx.fillText(sloganText, width - 60, 308);
+        await EmojiCanvasHelper.drawText(ctx, sloganText, width - 60, 308, {
+            fontSize: 13.5,
+            fontFamily: FONT_FAMILY,
+            color: palette.sloganColor,
+            align: 'right',
+            maxWidth: 440,
+            shadowColor: 'rgba(0, 0, 0, 0.9)',
+            shadowBlur: 8,
+            shadowOffsetY: 1,
+            baseline: 'alphabetic',
+        });
         ctx.restore();
         return canvas.toBuffer('image/png');
     }

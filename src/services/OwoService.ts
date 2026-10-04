@@ -809,9 +809,11 @@ export class OwoService {
     const elapsed = now - user.last_hunt_unix;
     if (elapsed < COOLDOWN) {
       const remaining = COOLDOWN - elapsed;
-      await this.api.sendMessage(
+      await this.sendAutoExpiring(
         message.channel_id,
         `⏱️ | **${member.user.username}**, biraz soluklan! **${remaining} saniye** sonra tekrar avlanabilirsin.`,
+        5,
+        message.id,
       );
       return;
     }
@@ -984,9 +986,11 @@ export class OwoService {
       const remainingSec = DAY_SECONDS - elapsed;
       const hours = Math.floor(remainingSec / 3600);
       const minutes = Math.floor((remainingSec % 3600) / 60);
-      await this.api.sendMessage(
+      await this.sendAutoExpiring(
         message.channel_id,
         `📅 | **${member.user.username}**, günlük ödülünü zaten aldın! Sonraki ödül için **${hours} saat ${minutes} dakika** beklemelisin.`,
+        5,
+        message.id,
       );
       return;
     }
@@ -1494,9 +1498,11 @@ export class OwoService {
     const elapsed = now - user.last_battle_unix;
     if (elapsed < COOLDOWN) {
       const remaining = COOLDOWN - elapsed;
-      await this.api.sendMessage(
+      await this.sendAutoExpiring(
         message.channel_id,
         `⚔️ | **${member.user.username}**, savaş yaralarını sarıyorsun! **${remaining} saniye** sonra tekrar savaşabilirsin.`,
+        5,
+        message.id,
       );
       return;
     }
@@ -1616,9 +1622,11 @@ export class OwoService {
     const elapsed = now - user.last_pray_unix;
     if (elapsed < COOLDOWN) {
       const remainingMin = Math.ceil((COOLDOWN - elapsed) / 60);
-      await this.api.sendMessage(
+      await this.sendAutoExpiring(
         message.channel_id,
         `🙏 | **${member.user.username}**, biraz önce dua ettin! **${remainingMin} dakika** sonra tekrar dua edebilirsin.`,
+        5,
+        message.id,
       );
       return;
     }
@@ -1665,9 +1673,11 @@ export class OwoService {
     const elapsed = now - user.last_pray_unix;
     if (elapsed < COOLDOWN) {
       const remainingMin = Math.ceil((COOLDOWN - elapsed) / 60);
-      await this.api.sendMessage(
+      await this.sendAutoExpiring(
         message.channel_id,
         `😈 | **${member.user.username}**, kara büyü enerjin tükenmiş! **${remainingMin} dakika** sonra tekrar lanetleyebilirsin.`,
+        5,
+        message.id,
       );
       return;
     }

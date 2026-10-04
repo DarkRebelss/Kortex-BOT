@@ -40,14 +40,40 @@ export class OwoLevelCardGenerator {
 
   private static async fetchImage(url: string): Promise<Image | null> {
     if (!isSafeHttpUrl(url)) return null;
-    try {
-      const res = await safeFetch(url, { signal: AbortSignal.timeout(4000) });
-      if (res.ok) {
-        const buf = Buffer.from(await res.arrayBuffer());
-        return await loadImage(buf);
+
+    const urlsToTry: string[] = [];
+
+    // If Discord CDN avatar, prioritize static .png frame to avoid animated GIF corruption
+    const mediaMatch = url.match(/avatars\/([^/]+)\/([^/.]+)/);
+    if (mediaMatch) {
+      const uId = mediaMatch[1];
+      const aHash = mediaMatch[2];
+      urlsToTry.push(`https://cdn.discordapp.com/avatars/${uId}/${aHash}.png?size=512`);
+      urlsToTry.push(`https://cdn.discordapp.com/avatars/${uId}/${aHash}.webp?size=512`);
+    }
+
+    if (url.includes('.gif') || url.includes('/a_')) {
+      const cleanUrl = url.replace(/\.(png|gif|webp|jpe?g)(\?.*)?$/i, '');
+      urlsToTry.push(`${cleanUrl}.png`);
+      urlsToTry.push(`${cleanUrl}.webp`);
+    }
+
+    urlsToTry.push(url);
+
+    for (const targetUrl of urlsToTry) {
+      if (!isSafeHttpUrl(targetUrl)) continue;
+      try {
+        const res = await safeFetch(targetUrl, { signal: AbortSignal.timeout(4000) });
+        if (res.ok) {
+          const buf = Buffer.from(await res.arrayBuffer());
+          const img = await loadImage(buf);
+          if (img && img.width > 0 && img.height > 0) {
+            return img;
+          }
+        }
+      } catch {
+        // Silently try next fallback URL
       }
-    } catch {
-      // Ignore network errors, fall back gracefully
     }
     return null;
   }
