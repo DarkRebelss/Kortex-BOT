@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { createCanvas, type Image } from '@napi-rs/canvas';
+import { createCanvas, loadImage, type Image } from '@napi-rs/canvas';
 import fs from 'node:fs';
 import path from 'node:path';
-import { fetchAndLoadSafeImage, loadBufferAsSafeImage, registerProjectFonts } from '../utils/imageUtils.js';
+import { isSafeHttpUrl, safeFetch } from '../utils/security.js';
 
 export interface OwoLevelCardOptions {
   username: string;
@@ -29,7 +29,7 @@ export class OwoLevelCardGenerator {
     for (const p of possiblePaths) {
       if (fs.existsSync(p)) {
         try {
-          return await loadBufferAsSafeImage(fs.readFileSync(p));
+          return await loadImage(fs.readFileSync(p));
         } catch {
           // ignore
         }
@@ -39,7 +39,17 @@ export class OwoLevelCardGenerator {
   }
 
   private static async fetchImage(url: string): Promise<Image | null> {
-    return fetchAndLoadSafeImage(url);
+    if (!isSafeHttpUrl(url)) return null;
+    try {
+      const res = await safeFetch(url, { signal: AbortSignal.timeout(4000) });
+      if (res.ok) {
+        const buf = Buffer.from(await res.arrayBuffer());
+        return await loadImage(buf);
+      }
+    } catch {
+      // Ignore network errors, fall back gracefully
+    }
+    return null;
   }
 
   /**
@@ -48,7 +58,6 @@ export class OwoLevelCardGenerator {
    * [Avatar] | LEVEL UP! {Level} | [Rewards: Cash, Lootbox, Crate]
    */
   static async generateCard(options: OwoLevelCardOptions): Promise<Buffer> {
-    registerProjectFonts();
     const width = 600;
     const height = 200;
     const canvas = createCanvas(width, height);

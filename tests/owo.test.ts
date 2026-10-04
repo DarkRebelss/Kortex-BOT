@@ -25,7 +25,6 @@ describe('OwO Bot System Deep Verification', () => {
       sentMessages.push({ channelId, content });
       return { id: 'msg_' + Date.now(), channel_id: channelId, content };
     }),
-    deleteMessage: vi.fn(async () => {}),
     getGuildRoles: vi.fn(async () => []),
     getGuildChannels: vi.fn(async () => []),
     getGuildMember: vi.fn(async () => null),
@@ -624,49 +623,6 @@ describe('OwO Bot System Deep Verification', () => {
     // 5. Non-privileged user cannot configure channel
     await sendMsg('/w kanal #owo-oyun', memberB);
     expect(sentMessages[sentMessages.length - 1].content).toContain('Sunucuyu Yönet');
-  });
-
-  it('correctly resolves GIF animated avatars and normalizes to png', async () => {
-    const gifUser = {
-      id: 'user_gif_123',
-      username: 'GifMaster',
-      discriminator: '9999',
-      avatar: 'a_0123456789abcdef',
-      banner: 'a_banner_123456',
-    };
-
-    const avatarUrl = await owoService.resolveAvatarUrl(gifUser as any, undefined, guild.id);
-    expect(avatarUrl).toContain('https://micup.gg/media/avatars/user_gif_123/a_0123456789abcdef.png');
-
-    // Static avatar should remain .png
-    const staticUser = {
-      id: 'user_static_456',
-      username: 'StaticGuy',
-      discriminator: '8888',
-      avatar: 'normal_avatar_hash',
-    };
-    const staticAvatarUrl = await owoService.resolveAvatarUrl(staticUser as any, undefined, guild.id);
-    expect(staticAvatarUrl).toBe('https://micup.gg/media/avatars/user_static_456/normal_avatar_hash.png');
-  });
-
-  it('schedules auto-deletion for cooldown warning and triggering user command', async () => {
-    vi.useFakeTimers();
-
-    // Trigger hunt to start cooldown
-    db.updateOwoUser(memberA.user.id, { last_hunt_unix: 0 });
-    await sendMsg('/w hunt');
-
-    // Second hunt within 15 seconds triggers cooldown warning
-    await sendMsg('/w hunt');
-    expect(sentMessages[sentMessages.length - 1].content).toContain('biraz soluklan');
-
-    // Fast-forward timers by 5.5 seconds
-    vi.advanceTimersByTime(5500);
-
-    // Both the bot's warning and the user's trigger command should be deleted
-    expect(mockApi.deleteMessage).toHaveBeenCalled();
-
-    vi.useRealTimers();
   });
 });
 

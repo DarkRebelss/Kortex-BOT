@@ -95,10 +95,11 @@ export class WelcomeGoodbyeService {
 
     if (memberAvatar) {
       if (memberAvatar.startsWith('http://') || memberAvatar.startsWith('https://')) {
-        return memberAvatar.replace(/\.gif(\?.*)?$/i, '.png$1');
+        return memberAvatar;
       }
       const clean = memberAvatar.replace(/\.(png|gif|webp|jpe?g)$/i, '');
-      const ext = 'png';
+      const isAnimated = memberAvatar.startsWith('a_') || memberAvatar.toLowerCase().includes('gif');
+      const ext = isAnimated ? 'gif' : 'png';
       if (guildId) {
         return `https://micup.gg/media/guilds/${guildId}/users/${user.id}/avatars/${clean}.${ext}`;
       }
@@ -107,10 +108,11 @@ export class WelcomeGoodbyeService {
 
     if (userAvatar) {
       if (userAvatar.startsWith('http://') || userAvatar.startsWith('https://')) {
-        return userAvatar.replace(/\.gif(\?.*)?$/i, '.png$1');
+        return userAvatar;
       }
       const clean = userAvatar.replace(/\.(png|gif|webp|jpe?g)$/i, '');
-      const ext = 'png';
+      const isAnimated = userAvatar.startsWith('a_') || userAvatar.toLowerCase().includes('gif');
+      const ext = isAnimated ? 'gif' : 'png';
       return `https://micup.gg/media/avatars/${user.id}/${clean}.${ext}`;
     }
 
@@ -137,14 +139,14 @@ export class WelcomeGoodbyeService {
     const count = memberCount ?? guild.member_count ?? guild.members?.length ?? 1;
     const avatarUrl = await this.resolveAvatarUrl(user, member, guild.id);
 
-    const rawTemplate = config.welcome_message || '👋 Hoş geldin {user}! Sunucuya katılan **{memberCount}.** üyemizsin.';
-    const formattedWelcome = WelcomeGoodbyeService.formatTemplate(rawTemplate, user, guild, count);
-    const welcomeSentence = formattedWelcome
-      .replace(/<@!?\d+>/g, `@${user.username}`)
-      .split('\n')[0];
-
     let cardBuffer: Buffer | null = null;
     try {
+      const welcomeSentence = config.welcome_message
+        ? WelcomeGoodbyeService.formatTemplate(config.welcome_message, user, guild, count)
+          .replace(/<@!?\d+>/g, `@${user.username}`)
+          .split('\n')[0]
+        : `${guild.name || 'BROFIST'} Kabilesine Hoş geldin! 👊`;
+
       cardBuffer = await WelcomeCardGenerator.generateCard({
         username: user.username,
         avatarUrl,
@@ -160,10 +162,9 @@ export class WelcomeGoodbyeService {
       console.error('[WelcomeGoodbyeService] Error generating welcome card image:', err);
     }
 
-    const messageContent = prefixNotice ? `${prefixNotice}\n${formattedWelcome}` : formattedWelcome;
-
     if (cardBuffer) {
-      await this.api.sendMessage(channelId, messageContent, {
+      // Send ONLY the visual image (no embed, no outer text)
+      await this.api.sendMessage(channelId, prefixNotice || '', {
         files: [
           {
             name: 'welcome.png',
@@ -173,7 +174,9 @@ export class WelcomeGoodbyeService {
         ],
       });
     } else {
-      await this.api.sendMessage(channelId, messageContent);
+      // Fallback message if image generation fails
+      const fallbackMsg = prefixNotice ? `${prefixNotice}\nHoş geldin <@${user.id}>!` : `Hoş geldin <@${user.id}>!`;
+      await this.api.sendMessage(channelId, fallbackMsg);
     }
   }
 
@@ -194,14 +197,13 @@ export class WelcomeGoodbyeService {
 
     let cardBuffer: Buffer | null = null;
     const resolvedUsername = user?.username || (user as any)?.global_name || (user as any)?.nick || member?.nick || member?.user?.username || 'Üye';
-    
-    const rawGoodbye = config.goodbye_message || '👋 **{username}** sunucudan ayrıldı. Kalan üye sayısı: **{memberCount}**.';
-    const formattedGoodbye = WelcomeGoodbyeService.formatTemplate(rawGoodbye, user, guild, count);
-    const goodbyeSentence = formattedGoodbye
-      .replace(/<@!?\d+>/g, `@${resolvedUsername}`)
-      .split('\n')[0];
-
     try {
+      const goodbyeSentence = config.goodbye_message
+        ? WelcomeGoodbyeService.formatTemplate(config.goodbye_message, user, guild, count)
+          .replace(/<@!?\d+>/g, `@${resolvedUsername}`)
+          .split('\n')[0]
+        : 'Yolun açık olsun, tekrar bekleriz! 👋';
+
       cardBuffer = await WelcomeCardGenerator.generateGoodbyeCard({
         username: resolvedUsername,
         avatarUrl,
@@ -218,10 +220,9 @@ export class WelcomeGoodbyeService {
       console.error('[WelcomeGoodbyeService] Error generating goodbye card image:', err);
     }
 
-    const goodbyeContent = prefixNotice ? `${prefixNotice}\n${formattedGoodbye}` : formattedGoodbye;
-
     if (cardBuffer) {
-      await this.api.sendMessage(channelId, goodbyeContent, {
+      // Send ONLY the visual image (no embed, no outer text)
+      await this.api.sendMessage(channelId, prefixNotice || '', {
         files: [
           {
             name: 'goodbye.png',
@@ -231,7 +232,9 @@ export class WelcomeGoodbyeService {
         ],
       });
     } else {
-      await this.api.sendMessage(channelId, goodbyeContent);
+      // Fallback message if image generation fails
+      const fallbackMsg = prefixNotice ? `${prefixNotice}\n**${resolvedUsername}** sunucumuzdan ayrıldı.` : `**${resolvedUsername}** sunucumuzdan ayrıldı.`;
+      await this.api.sendMessage(channelId, fallbackMsg);
     }
   }
 
