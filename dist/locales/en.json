@@ -1,0 +1,88 @@
+{
+    "common": {
+        "success": "Success",
+        "error": "Error",
+        "unknown": "Unknown",
+        "none": "None",
+        "system": "System"
+    },
+    "errors": {
+        "no_permission": "❌ You do not have sufficient permissions to run this command.",
+        "bot_missing_permission": "❌ The bot lacks required guild permission: **{permission}**",
+        "bot_hierarchy": "❌ **Bot Hierarchy Restriction:** The bot's highest role (**{botRole}**) is lower than or equal to the target user's role (**{targetRole}**).",
+        "user_hierarchy": "❌ **Role Hierarchy Restriction:** Target user's role (**{targetRole}**) is higher than or equal to your highest role (**{userRole}**).",
+        "role_hierarchy_bot": "❌ This role cannot be managed because it is positioned higher than the bot's highest role.",
+        "target_owner": "❌ The server owner cannot be targeted with moderation actions.",
+        "target_admin": "❌ The target user has Administrator permissions and cannot be targeted.",
+        "target_self": "❌ You cannot perform this action on yourself.",
+        "target_bot": "❌ The bot cannot perform this moderation action on itself.",
+        "user_not_found": "❌ User not found. Please mention a valid user or provide their ID.",
+        "role_not_found": "❌ The specified role was not found in this guild.",
+        "channel_not_found": "❌ The specified channel was not found.",
+        "invalid_duration": "❌ Invalid duration format! Examples: `10s`, `5m`, `1h`, `1d`, `7d`.",
+        "invalid_number": "❌ Please enter a valid number (between 1 and 100).",
+        "guild_only": "❌ This command can only be used inside a guild channel.",
+        "command_error": "❌ An error occurred while executing the command: {error}"
+    },
+    "moderation": {
+        "ban_success": "🔨 **{target}** was banned from the server.\n**Reason:** {reason}\n**Moderator:** {moderator}",
+        "unban_success": "🔓 **{target}** was unbanned from the server.\n**Moderator:** {moderator}",
+        "unban_not_banned": "ℹ️ **{target}** does not have an active ban on this server (user is not banned).",
+        "kick_success": "👢 **{target}** was kicked from the server.\n**Reason:** {reason}\n**Moderator:** {moderator}",
+        "timeout_success": "⏳ **{target}** was timed out for **{duration}**.\n**Reason:** {reason}\n**Expires:** {expiresAt}",
+        "untimeout_success": "⌛ **{target}**'s timeout was removed.\n**Moderator:** {moderator}",
+        "clear_success": "🧹 Successfully cleared **{count}** messages.",
+        "clear_user_success": "🧹 Cleared last **{count}** messages from **{target}**.",
+        "warn_added": "⚠️ **{target}** has been warned! (Warning #{id})\n**Reason:** {reason}\n**Total Active Warnings:** {totalWarnings}",
+        "warn_removed": "✅ Warning #{id} was successfully removed.",
+        "warn_removed_count": "✅ Removed **{count}** warning(s) from **{target}**. (Remaining active warnings: **{remaining}**)",
+        "warn_user_no_warnings": "✨ **{target}** has no active warnings.",
+        "warn_cannot_remove_self": "❌ You cannot remove your own warnings.",
+        "warn_not_found": "❌ No active warning found with specified ID.",
+        "warnings_header": "📋 Warning history for **{target}** ({count} active warnings):",
+        "warnings_empty": "✨ **{target}** has no active warnings.",
+        "auto_punishment_triggered": "🚨 **{target}** reached **{count}** warnings. Automated punishment applied: **{action}**."
+    },
+    "roles": {
+        "add_success": "✅ Granted role **{role}** to **{target}**.",
+        "remove_success": "🗑️ Removed role **{role}** from **{target}**.",
+        "already_has_role": "ℹ️ User already has this role.",
+        "does_not_have_role": "ℹ️ User does not have this role.",
+        "autorole_set": "✅ Auto-role for new members set to **{role}**.",
+        "autorole_removed": "🗑️ Auto-role feature disabled.",
+        "autorole_status": "ℹ️ Current auto-role: **{role}** (Status: {status})"
+    },
+    "welcome_goodbye": {
+        "welcome_default": "👋 Welcome {user}! You are our **{memberCount}th** member.",
+        "goodbye_default": "👋 **{username}** has left the server. Member count: **{memberCount}**.",
+        "welcome_set": "✅ Welcome channel set to **#{channel}**.",
+        "welcome_msg_set": "✅ Welcome message template updated:\n{message}",
+        "welcome_status": "ℹ️ Welcome system: **{status}** (Channel: {channel})",
+        "goodbye_set": "✅ Goodbye channel set to **#{channel}**.",
+        "goodbye_msg_set": "✅ Goodbye message template updated:\n{message}",
+        "goodbye_status": "ℹ️ Goodbye system: **{status}** (Channel: {channel})"
+    },
+    "security": {
+        "antispam_status": "🛡️ Anti-Spam: **{status}**\n• Max Messages: {maxMessages}\n• Interval: {interval} seconds\n• Punishment: {punishment}",
+        "antispam_triggered": "⚠️ **{target}**, please stop spamming! (Messages purged and temporary mute applied)",
+        "antilink_status": "🔗 Anti-Link: **{status}**\n• Whitelist: {whitelist}",
+        "antilink_triggered": "⛔ **{target}**, posting unauthorized external links or invites is prohibited here!",
+        "antilink_whitelist_added": "✅ **{domain}** added to link whitelist.",
+        "antilink_whitelist_removed": "🗑️ **{domain}** removed from link whitelist."
+    },
+    "modlog": {
+        "channel_set": "✅ Moderation log channel set to **#{channel}**.",
+        "channel_unset": "🗑️ Moderation log channel removed.",
+        "title_ban": "🚨 Member Banned",
+        "title_unban": "🔓 Member Unbanned",
+        "title_kick": "👢 Member Kicked",
+        "title_timeout": "⏳ Member Timed Out",
+        "title_untimeout": "⌛ Timeout Removed",
+        "title_warn": "⚠️ Warning Issued",
+        "title_role_add": "🏷️ Role Added",
+        "title_role_remove": "🏷️ Role Removed",
+        "title_clear": "🧹 Messages Purged",
+        "title_member_join": "📥 Member Joined",
+        "title_member_leave": "📤 Member Left"
+    }
+}

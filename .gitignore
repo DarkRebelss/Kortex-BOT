@@ -1,8 +1,8 @@
 # Node Dependencies
 node_modules/
 
-# TypeScript Build Output
-dist/
+# TypeScript Build Output (included for cloud/Docker hosting without compiler)
+# dist/
 
 # Environment Variables & Secrets (CRITICAL: Do NOT commit!)
 .env

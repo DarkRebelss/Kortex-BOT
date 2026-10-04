@@ -1,0 +1,32 @@
+import type { FluxerUser } from '../types/fluxer.js';
+export type DispatchListener = (eventName: string, data: any) => Promise<void> | void;
+export declare class GatewayClient {
+    private ws;
+    private token;
+    private gatewayUrl;
+    private heartbeatInterval;
+    private lastHeartbeatAck;
+    private lastSequence;
+    private sessionId;
+    private botUser;
+    private isConnecting;
+    private reconnectAttempts;
+    private readonly listeners;
+    constructor(gatewayUrl: string, customToken?: string);
+    get currentUser(): FluxerUser | null;
+    get currentSessionId(): string | null;
+    onDispatch(listener: DispatchListener): void;
+    connect(): Promise<void>;
+    private handlePayload;
+    private sendIdentify;
+    private sendResume;
+    private startHeartbeat;
+    private stopHeartbeat;
+    private sendHeartbeat;
+    private send;
+    private disconnectAndResume;
+    private handleDisconnect;
+    private scheduleReconnect;
+    sendVoiceStateUpdate(guildId: string, channelId: string | null, selfMute?: boolean, selfDeaf?: boolean): void;
+    disconnect(): void;
+}
