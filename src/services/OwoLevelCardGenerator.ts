@@ -43,15 +43,7 @@ export class OwoLevelCardGenerator {
 
     const urlsToTry: string[] = [];
 
-    // If Discord CDN avatar, prioritize static .png frame to avoid animated GIF corruption
-    const mediaMatch = url.match(/avatars\/([^/]+)\/([^/.]+)/);
-    if (mediaMatch) {
-      const uId = mediaMatch[1];
-      const aHash = mediaMatch[2];
-      urlsToTry.push(`https://cdn.discordapp.com/avatars/${uId}/${aHash}.png?size=512`);
-      urlsToTry.push(`https://cdn.discordapp.com/avatars/${uId}/${aHash}.webp?size=512`);
-    }
-
+    // Micup (Fluxer) avatar URLs: prioritize clean static .png / .webp over animated .gif
     if (url.includes('.gif') || url.includes('/a_')) {
       const cleanUrl = url.replace(/\.(png|gif|webp|jpe?g)(\?.*)?$/i, '');
       urlsToTry.push(`${cleanUrl}.png`);
@@ -59,6 +51,15 @@ export class OwoLevelCardGenerator {
     }
 
     urlsToTry.push(url);
+
+    // If it's a Micup media avatars URL, ensure direct micup.gg static endpoint is in candidates
+    const mediaMatch = url.match(/avatars\/([^/]+)\/([^/.]+)/);
+    if (mediaMatch) {
+      const uId = mediaMatch[1];
+      const aHash = mediaMatch[2].replace(/\.(png|gif|webp|jpe?g)$/i, '');
+      urlsToTry.push(`https://micup.gg/media/avatars/${uId}/${aHash}.png`);
+      urlsToTry.push(`https://micup.gg/media/avatars/${uId}/${aHash}.webp`);
+    }
 
     for (const targetUrl of urlsToTry) {
       if (!isSafeHttpUrl(targetUrl)) continue;

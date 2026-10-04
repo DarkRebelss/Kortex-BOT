@@ -323,15 +323,20 @@ export class OwoService {
             catch { }
         }
         if (memberAvatar) {
-            if (memberAvatar.startsWith('http'))
-                return memberAvatar;
+            if (memberAvatar.startsWith('http')) {
+                return memberAvatar.replace(/\.gif(\?.*)?$/i, '.png$1');
+            }
+            const clean = memberAvatar.replace(/\.(png|gif|webp|jpe?g)$/i, '');
             if (guildId)
-                return `https://micup.gg/media/guilds/${guildId}/users/${user.id}/avatars/${memberAvatar}.png`;
+                return `https://micup.gg/media/guilds/${guildId}/users/${user.id}/avatars/${clean}.png`;
+            return `https://micup.gg/media/avatars/${user.id}/${clean}.png`;
         }
         if (userAvatar) {
-            if (userAvatar.startsWith('http'))
-                return userAvatar;
-            return `https://micup.gg/media/avatars/${user.id}/${userAvatar}.png`;
+            if (userAvatar.startsWith('http')) {
+                return userAvatar.replace(/\.gif(\?.*)?$/i, '.png$1');
+            }
+            const clean = userAvatar.replace(/\.(png|gif|webp|jpe?g)$/i, '');
+            return `https://micup.gg/media/avatars/${user.id}/${clean}.png`;
         }
         try {
             const idx = Number(BigInt(user.id) % 6n);

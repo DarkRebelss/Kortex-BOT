@@ -58,7 +58,7 @@ export class EmojiCanvasHelper {
     static async loadEmojiImage(token) {
         let url = '';
         if (token.type === 'custom_emoji' && token.emojiId) {
-            url = `https://cdn.discordapp.com/emojis/${token.emojiId}.png?size=64`;
+            url = `https://micup.gg/emojis/${token.emojiId}.png`;
         }
         else if (token.type === 'unicode_emoji' && token.codePoint) {
             url = `https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/${token.codePoint}.png`;
@@ -71,7 +71,12 @@ export class EmojiCanvasHelper {
         }
         try {
             let res = await safeFetch(url, { signal: AbortSignal.timeout(3000) });
-            if (!res.ok && token.type === 'unicode_emoji' && token.codePoint) {
+            if (!res.ok && token.type === 'custom_emoji' && token.emojiId) {
+                // Fallback to Micup media emojis
+                const fallbackUrl = `https://micup.gg/media/emojis/${token.emojiId}.png`;
+                res = await safeFetch(fallbackUrl, { signal: AbortSignal.timeout(3000) });
+            }
+            else if (!res.ok && token.type === 'unicode_emoji' && token.codePoint) {
                 // Fallback to Cloudflare Twemoji CDN
                 const fallbackUrl = `https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/72x72/${token.codePoint}.png`;
                 res = await safeFetch(fallbackUrl, { signal: AbortSignal.timeout(3000) });

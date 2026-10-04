@@ -261,19 +261,17 @@ export class WelcomeCardGenerator {
         let avatarLoaded = false;
         if (options.avatarUrl) {
             const urlsToTry = [];
-            // If Discord CDN avatar, prioritize static .png frame to avoid animated GIF corruption
-            const mediaMatch = options.avatarUrl.match(/avatars\/([^/]+)\/([^/.]+)/);
-            if (mediaMatch) {
-                const uId = mediaMatch[1];
-                const aHash = mediaMatch[2];
-                urlsToTry.push(`https://cdn.discordapp.com/avatars/${uId}/${aHash}.png?size=512`);
-                urlsToTry.push(`https://cdn.discordapp.com/avatars/${uId}/${aHash}.webp?size=512`);
-            }
+            // Micup (Fluxer) avatar URLs: prioritize clean static .png / .webp over animated .gif
             const cleanUrl = options.avatarUrl.replace(/\.(png|gif|webp|jpe?g)(\?.*)?$/i, '');
             urlsToTry.push(`${cleanUrl}.png`);
             urlsToTry.push(`${cleanUrl}.webp`);
-            urlsToTry.push(`${cleanUrl}.gif`);
             urlsToTry.push(options.avatarUrl);
+            const mediaMatch = options.avatarUrl.match(/avatars\/([^/]+)\/([^/.]+)/);
+            if (mediaMatch) {
+                const uId = mediaMatch[1];
+                const aHash = mediaMatch[2].replace(/\.(png|gif|webp|jpe?g)$/i, '');
+                urlsToTry.push(`https://micup.gg/media/avatars/${uId}/${aHash}.png`);
+            }
             for (const url of urlsToTry) {
                 if (!isSafeHttpUrl(url))
                     continue;
