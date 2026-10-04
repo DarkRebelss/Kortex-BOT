@@ -324,18 +324,17 @@ export class OwoService {
         }
         if (memberAvatar) {
             if (memberAvatar.startsWith('http'))
-                return memberAvatar;
+                return memberAvatar.replace(/\.gif(\?.*)?$/i, '.png$1');
             const clean = memberAvatar.replace(/\.(png|gif|webp|jpe?g)$/i, '');
-            const ext = (clean.startsWith('a_') || clean.toLowerCase().includes('gif')) ? 'gif' : 'png';
             if (guildId)
-                return `https://micup.gg/media/guilds/${guildId}/users/${user.id}/avatars/${clean}.${ext}`;
+                return `https://micup.gg/media/guilds/${guildId}/users/${user.id}/avatars/${clean}.png`;
+            return `https://micup.gg/media/avatars/${user.id}/${clean}.png`;
         }
         if (userAvatar) {
             if (userAvatar.startsWith('http'))
-                return userAvatar;
+                return userAvatar.replace(/\.gif(\?.*)?$/i, '.png$1');
             const clean = userAvatar.replace(/\.(png|gif|webp|jpe?g)$/i, '');
-            const ext = (clean.startsWith('a_') || clean.toLowerCase().includes('gif')) ? 'gif' : 'png';
-            return `https://micup.gg/media/avatars/${user.id}/${clean}.${ext}`;
+            return `https://micup.gg/media/avatars/${user.id}/${clean}.png`;
         }
         try {
             const idx = Number(BigInt(user.id) % 6n);
@@ -361,17 +360,13 @@ export class OwoService {
         if (memberBanner) {
             if (memberBanner.startsWith('http'))
                 return memberBanner;
-            const clean = memberBanner.replace(/\.(png|gif|webp|jpe?g)$/i, '');
-            const ext = (clean.startsWith('a_') || clean.toLowerCase().includes('gif')) ? 'gif' : 'png';
             if (guildId)
-                return `https://micup.gg/media/guilds/${guildId}/users/${user.id}/banners/${clean}.${ext}`;
+                return `https://micup.gg/media/guilds/${guildId}/users/${user.id}/banners/${memberBanner}.png`;
         }
         if (userBanner) {
             if (userBanner.startsWith('http'))
                 return userBanner;
-            const clean = userBanner.replace(/\.(png|gif|webp|jpe?g)$/i, '');
-            const ext = (clean.startsWith('a_') || clean.toLowerCase().includes('gif')) ? 'gif' : 'png';
-            return `https://micup.gg/media/banners/${user.id}/${clean}.${ext}`;
+            return `https://micup.gg/media/banners/${user.id}/${userBanner}.png`;
         }
         return null;
     }
@@ -676,7 +671,7 @@ export class OwoService {
         const elapsed = now - user.last_hunt_unix;
         if (elapsed < COOLDOWN) {
             const remaining = COOLDOWN - elapsed;
-            await this.sendAutoExpiring(message.channel_id, `⏱️ | **${member.user.username}**, biraz soluklan! **${remaining} saniye** sonra tekrar avlanabilirsin.`, 5, message.id);
+            await this.sendAutoExpiring(message.channel_id, `⏱️ | **${member.user.username}**, biraz soluklan! **${remaining} saniye** sonra tekrar avlanabilirsin.`, 4, message.id);
             return;
         }
         // Determine how many animals are caught: 1 (70%), 2 (24%), 3 (6%)
@@ -808,7 +803,7 @@ export class OwoService {
             const remainingSec = DAY_SECONDS - elapsed;
             const hours = Math.floor(remainingSec / 3600);
             const minutes = Math.floor((remainingSec % 3600) / 60);
-            await this.sendAutoExpiring(message.channel_id, `📅 | **${member.user.username}**, günlük ödülünü zaten aldın! Sonraki ödül için **${hours} saat ${minutes} dakika** beklemelisin.`, 6, message.id);
+            await this.sendAutoExpiring(message.channel_id, `📅 | **${member.user.username}**, günlük ödülünü zaten aldın! Sonraki ödül için **${hours} saat ${minutes} dakika** beklemelisin.`, 5, message.id);
             return;
         }
         // Calculate streak and gradual rewards starting from 500
@@ -1180,7 +1175,7 @@ export class OwoService {
         const elapsed = now - user.last_battle_unix;
         if (elapsed < COOLDOWN) {
             const remaining = COOLDOWN - elapsed;
-            await this.sendAutoExpiring(message.channel_id, `⚔️ | **${member.user.username}**, savaş yaralarını sarıyorsun! **${remaining} saniye** sonra tekrar savaşabilirsin.`, 5, message.id);
+            await this.sendAutoExpiring(message.channel_id, `⚔️ | **${member.user.username}**, savaş yaralarını sarıyorsun! **${remaining} saniye** sonra tekrar savaşabilirsin.`, 4, message.id);
             return;
         }
         // Select monster based on player level
@@ -1265,7 +1260,7 @@ export class OwoService {
         const elapsed = now - user.last_pray_unix;
         if (elapsed < COOLDOWN) {
             const remainingMin = Math.ceil((COOLDOWN - elapsed) / 60);
-            await this.sendAutoExpiring(message.channel_id, `🙏 | **${member.user.username}**, biraz önce dua ettin! **${remainingMin} dakika** sonra tekrar dua edebilirsin.`, 5, message.id);
+            await this.sendAutoExpiring(message.channel_id, `🙏 | **${member.user.username}**, biraz önce dua ettin! **${remainingMin} dakika** sonra tekrar dua edebilirsin.`, 4, message.id);
             return;
         }
         let targetName = member.user.username;
@@ -1289,7 +1284,7 @@ export class OwoService {
         const elapsed = now - user.last_pray_unix;
         if (elapsed < COOLDOWN) {
             const remainingMin = Math.ceil((COOLDOWN - elapsed) / 60);
-            await this.sendAutoExpiring(message.channel_id, `😈 | **${member.user.username}**, kara büyü enerjin tükenmiş! **${remainingMin} dakika** sonra tekrar lanetleyebilirsin.`, 5, message.id);
+            await this.sendAutoExpiring(message.channel_id, `😈 | **${member.user.username}**, kara büyü enerjin tükenmiş! **${remainingMin} dakika** sonra tekrar lanetleyebilirsin.`, 4, message.id);
             return;
         }
         let targetName = 'düşmanlarını';

@@ -83,11 +83,10 @@ export class WelcomeGoodbyeService {
         }
         if (memberAvatar) {
             if (memberAvatar.startsWith('http://') || memberAvatar.startsWith('https://')) {
-                return memberAvatar;
+                return memberAvatar.replace(/\.gif(\?.*)?$/i, '.png$1');
             }
             const clean = memberAvatar.replace(/\.(png|gif|webp|jpe?g)$/i, '');
-            const isAnimated = memberAvatar.startsWith('a_') || memberAvatar.toLowerCase().includes('gif');
-            const ext = isAnimated ? 'gif' : 'png';
+            const ext = 'png';
             if (guildId) {
                 return `https://micup.gg/media/guilds/${guildId}/users/${user.id}/avatars/${clean}.${ext}`;
             }
@@ -95,11 +94,10 @@ export class WelcomeGoodbyeService {
         }
         if (userAvatar) {
             if (userAvatar.startsWith('http://') || userAvatar.startsWith('https://')) {
-                return userAvatar;
+                return userAvatar.replace(/\.gif(\?.*)?$/i, '.png$1');
             }
             const clean = userAvatar.replace(/\.(png|gif|webp|jpe?g)$/i, '');
-            const isAnimated = userAvatar.startsWith('a_') || userAvatar.toLowerCase().includes('gif');
-            const ext = isAnimated ? 'gif' : 'png';
+            const ext = 'png';
             return `https://micup.gg/media/avatars/${user.id}/${clean}.${ext}`;
         }
         try {
@@ -117,19 +115,18 @@ export class WelcomeGoodbyeService {
         const config = this.db.getGuildConfig(guild.id);
         const count = memberCount ?? guild.member_count ?? guild.members?.length ?? 1;
         const avatarUrl = await this.resolveAvatarUrl(user, member, guild.id);
-        const formattedWelcome = WelcomeGoodbyeService.formatTemplate(config.welcome_message || '👋 Hoş geldin {user}! Sunucuya katılan **{memberCount}.** üyemizsin.', user, guild, count);
+        const rawTemplate = config.welcome_message || '👋 Hoş geldin {user}! Sunucuya katılan **{memberCount}.** üyemizsin.';
+        const formattedWelcome = WelcomeGoodbyeService.formatTemplate(rawTemplate, user, guild, count);
+        const welcomeSentence = formattedWelcome
+            .replace(/<@!?\d+>/g, `@${user.username}`)
+            .split('\n')[0];
         let cardBuffer = null;
         try {
-            const welcomeSentence = formattedWelcome
-                .replace(/<@!?\d+>/g, `@${user.username}`)
-                .replace(/<a?:[a-zA-Z0-9_]+:\d+>/g, '') // strip custom emoji tags from image canvas
-                .split('\n')[0]
-                .trim();
             cardBuffer = await WelcomeCardGenerator.generateCard({
                 username: user.username,
                 avatarUrl,
                 subtitle: config.welcome_card_subtitle || 'TOPLULUĞA KATILDI',
-                welcomeText: welcomeSentence || `${guild.name || 'Topluluk'} Ailesine Hoş geldin!`,
+                welcomeText: welcomeSentence,
                 brandingText: 'Kortex',
                 sloganText: config.welcome_card_slogan || 'Karanlıkta parlayan yeni bir yıldız.',
                 customColor: config.welcome_card_color || undefined,
@@ -163,20 +160,19 @@ export class WelcomeGoodbyeService {
         const config = this.db.getGuildConfig(guild.id);
         const count = memberCount ?? guild.member_count ?? guild.members?.length ?? 1;
         const avatarUrl = await this.resolveAvatarUrl(user, member, guild.id);
-        const resolvedUsername = user?.username || user?.global_name || user?.nick || member?.nick || member?.user?.username || 'Üye';
-        const formattedGoodbye = WelcomeGoodbyeService.formatTemplate(config.goodbye_message || '👋 **{username}** sunucudan ayrıldı. Kalan üye sayısı: **{memberCount}**.', user, guild, count);
         let cardBuffer = null;
+        const resolvedUsername = user?.username || user?.global_name || user?.nick || member?.nick || member?.user?.username || 'Üye';
+        const rawGoodbye = config.goodbye_message || '👋 **{username}** sunucudan ayrıldı. Kalan üye sayısı: **{memberCount}**.';
+        const formattedGoodbye = WelcomeGoodbyeService.formatTemplate(rawGoodbye, user, guild, count);
+        const goodbyeSentence = formattedGoodbye
+            .replace(/<@!?\d+>/g, `@${resolvedUsername}`)
+            .split('\n')[0];
         try {
-            const goodbyeSentence = formattedGoodbye
-                .replace(/<@!?\d+>/g, `@${resolvedUsername}`)
-                .replace(/<a?:[a-zA-Z0-9_]+:\d+>/g, '') // strip custom emoji tags from image canvas
-                .split('\n')[0]
-                .trim();
             cardBuffer = await WelcomeCardGenerator.generateGoodbyeCard({
                 username: resolvedUsername,
                 avatarUrl,
                 subtitle: config.goodbye_card_subtitle || 'TOPLULUKTAN AYRILDI',
-                welcomeText: goodbyeSentence || 'Yolun açık olsun, tekrar bekleriz!',
+                welcomeText: goodbyeSentence,
                 brandingText: 'Kortex',
                 sloganText: config.goodbye_card_slogan || 'Disconnecting... ama izler kalır.',
                 customColor: config.goodbye_card_color || '#f43f5e',
@@ -188,9 +184,9 @@ export class WelcomeGoodbyeService {
         catch (err) {
             console.error('[WelcomeGoodbyeService] Error generating goodbye card image:', err);
         }
-        const messageContent = prefixNotice ? `${prefixNotice}\n${formattedGoodbye}` : formattedGoodbye;
+        const goodbyeContent = prefixNotice ? `${prefixNotice}\n${formattedGoodbye}` : formattedGoodbye;
         if (cardBuffer) {
-            await this.api.sendMessage(channelId, messageContent, {
+            await this.api.sendMessage(channelId, goodbyeContent, {
                 files: [
                     {
                         name: 'goodbye.png',
@@ -201,7 +197,7 @@ export class WelcomeGoodbyeService {
             });
         }
         else {
-            await this.api.sendMessage(channelId, messageContent);
+            await this.api.sendMessage(channelId, goodbyeContent);
         }
     }
     // -------------------------------------------------------------

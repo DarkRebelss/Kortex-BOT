@@ -1270,6 +1270,14 @@ export class DatabaseClient {
         const result = stmt.run(guildId, level);
         return Number(result.changes) > 0;
     }
+    walCheckpoint() {
+        try {
+            this.db.exec('PRAGMA wal_checkpoint(TRUNCATE);');
+        }
+        catch (err) {
+            console.error('[DatabaseClient] WAL checkpoint hatası:', err.message);
+        }
+    }
     // -------------------------------------------------------------
     // AFK User Operations
     // -------------------------------------------------------------
@@ -1633,14 +1641,6 @@ export class DatabaseClient {
         }
         catch {
             return null;
-        }
-    }
-    walCheckpoint() {
-        try {
-            this.db.exec('PRAGMA wal_checkpoint(TRUNCATE);');
-        }
-        catch (err) {
-            console.warn(`[DatabaseClient] walCheckpoint uyarısı: ${err.message}`);
         }
     }
     close() {

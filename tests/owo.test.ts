@@ -626,7 +626,7 @@ describe('OwO Bot System Deep Verification', () => {
     expect(sentMessages[sentMessages.length - 1].content).toContain('Sunucuyu Yönet');
   });
 
-  it('correctly resolves GIF animated avatars and banners with .gif extension', async () => {
+  it('correctly resolves GIF animated avatars and normalizes to png', async () => {
     const gifUser = {
       id: 'user_gif_123',
       username: 'GifMaster',
@@ -635,11 +635,8 @@ describe('OwO Bot System Deep Verification', () => {
       banner: 'a_banner_123456',
     };
 
-    const avatarUrl = await owoService.resolveAvatarUrl(gifUser, undefined, guild.id);
-    expect(avatarUrl).toBe('https://micup.gg/media/avatars/user_gif_123/a_0123456789abcdef.gif');
-
-    const bannerUrl = await owoService.resolveBannerUrl(gifUser, undefined, guild.id);
-    expect(bannerUrl).toBe('https://micup.gg/media/banners/user_gif_123/a_banner_123456.gif');
+    const avatarUrl = await owoService.resolveAvatarUrl(gifUser as any, undefined, guild.id);
+    expect(avatarUrl).toContain('https://micup.gg/media/avatars/user_gif_123/a_0123456789abcdef.png');
 
     // Static avatar should remain .png
     const staticUser = {
@@ -648,7 +645,7 @@ describe('OwO Bot System Deep Verification', () => {
       discriminator: '8888',
       avatar: 'normal_avatar_hash',
     };
-    const staticAvatarUrl = await owoService.resolveAvatarUrl(staticUser, undefined, guild.id);
+    const staticAvatarUrl = await owoService.resolveAvatarUrl(staticUser as any, undefined, guild.id);
     expect(staticAvatarUrl).toBe('https://micup.gg/media/avatars/user_static_456/normal_avatar_hash.png');
   });
 

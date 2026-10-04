@@ -1,25 +1,7 @@
-import { createCanvas, loadImage, GlobalFonts } from '@napi-rs/canvas';
-import fs from 'node:fs';
-import path from 'node:path';
+// SPDX-License-Identifier: AGPL-3.0-or-later
+import { createCanvas } from '@napi-rs/canvas';
 import { isSafeHttpUrl, safeFetch } from '../utils/security.js';
-try {
-    GlobalFonts.loadSystemFonts?.();
-}
-catch { }
-const emojiFontCandidates = [
-    path.resolve(process.cwd(), 'src', 'assets', 'fonts', 'NotoColorEmoji.ttf'),
-    path.resolve(process.cwd(), 'dist', 'assets', 'fonts', 'NotoColorEmoji.ttf'),
-    path.resolve(process.cwd(), 'assets', 'fonts', 'NotoColorEmoji.ttf'),
-];
-for (const fontPath of emojiFontCandidates) {
-    if (fs.existsSync(fontPath)) {
-        try {
-            GlobalFonts.registerFromPath(fontPath, 'Noto Color Emoji');
-            break;
-        }
-        catch { }
-    }
-}
+import { loadBufferAsSafeImage, registerProjectFonts } from '../utils/imageUtils.js';
 function parseHex(hex) {
     let clean = hex.replace('#', '').trim();
     if (clean.length === 3) {
@@ -105,8 +87,9 @@ export class WelcomeCardGenerator {
         // 1. Direct buffer
         if (options?.logoBuffer) {
             try {
-                const img = await loadImage(options.logoBuffer);
-                return { img, isCustom: true };
+                const img = await loadBufferAsSafeImage(options.logoBuffer);
+                if (img)
+                    return { img, isCustom: true };
             }
             catch (err) {
                 console.warn('[WelcomeCardGenerator] Could not load logo from buffer:', err);
@@ -119,8 +102,9 @@ export class WelcomeCardGenerator {
                 try {
                     const base64Data = url.includes(',') ? url.split(',')[1] : url;
                     const buf = Buffer.from(base64Data, 'base64');
-                    const img = await loadImage(buf);
-                    return { img, isCustom: true };
+                    const img = await loadBufferAsSafeImage(buf);
+                    if (img)
+                        return { img, isCustom: true };
                 }
                 catch (err) {
                     console.warn('[WelcomeCardGenerator] Could not parse base64 logo:', err);
@@ -135,8 +119,9 @@ export class WelcomeCardGenerator {
                         const res = await safeFetch(url, { signal: AbortSignal.timeout(5000) });
                         if (res.ok) {
                             const buf = Buffer.from(await res.arrayBuffer());
-                            const img = await loadImage(buf);
-                            return { img, isCustom: true };
+                            const img = await loadBufferAsSafeImage(buf);
+                            if (img)
+                                return { img, isCustom: true };
                         }
                     }
                     catch (err) {
@@ -153,6 +138,7 @@ export class WelcomeCardGenerator {
      * with procedural background, custom colors, and custom server logo.
      */
     static async generateCard(options) {
+        registerProjectFonts();
         const palette = getCardPalette(options);
         const width = 1024;
         const height = 360;
@@ -302,7 +288,7 @@ export class WelcomeCardGenerator {
             if (mediaMatch) {
                 const uId = mediaMatch[1];
                 const aHash = mediaMatch[2];
-                const aExt = (aHash.startsWith('a_') || aHash.includes('gif')) ? 'gif' : 'png';
+                const aExt = 'png';
                 urlsToTry.push(`https://cdn.discordapp.com/avatars/${uId}/${aHash}.${aExt}?size=512`);
             }
             for (const url of urlsToTry) {
@@ -312,28 +298,30 @@ export class WelcomeCardGenerator {
                     const res = await safeFetch(url, { signal: AbortSignal.timeout(5000) });
                     if (res.ok) {
                         const buf = Buffer.from(await res.arrayBuffer());
-                        const avatarImg = await loadImage(buf);
-                        ctx.save();
-                        ctx.beginPath();
-                        ctx.arc(cx, cy, avatarRadius - 1, 0, Math.PI * 2);
-                        ctx.clip();
-                        const imgRatio = avatarImg.width / avatarImg.height;
-                        let sWidth = avatarImg.width;
-                        let sHeight = avatarImg.height;
-                        let sx = 0;
-                        let sy = 0;
-                        if (imgRatio > 1) {
-                            sWidth = avatarImg.height;
-                            sx = (avatarImg.width - sWidth) / 2;
+                        const avatarImg = await loadBufferAsSafeImage(buf);
+                        if (avatarImg) {
+                            ctx.save();
+                            ctx.beginPath();
+                            ctx.arc(cx, cy, avatarRadius - 1, 0, Math.PI * 2);
+                            ctx.clip();
+                            const imgRatio = avatarImg.width / avatarImg.height;
+                            let sWidth = avatarImg.width;
+                            let sHeight = avatarImg.height;
+                            let sx = 0;
+                            let sy = 0;
+                            if (imgRatio > 1) {
+                                sWidth = avatarImg.height;
+                                sx = (avatarImg.width - sWidth) / 2;
+                            }
+                            else if (imgRatio < 1) {
+                                sHeight = avatarImg.width;
+                                sy = (avatarImg.height - sHeight) / 2;
+                            }
+                            ctx.drawImage(avatarImg, sx, sy, sWidth, sHeight, cx - avatarRadius, cy - avatarRadius, avatarRadius * 2, avatarRadius * 2);
+                            ctx.restore();
+                            avatarLoaded = true;
+                            break;
                         }
-                        else if (imgRatio < 1) {
-                            sHeight = avatarImg.width;
-                            sy = (avatarImg.height - sHeight) / 2;
-                        }
-                        ctx.drawImage(avatarImg, sx, sy, sWidth, sHeight, cx - avatarRadius, cy - avatarRadius, avatarRadius * 2, avatarRadius * 2);
-                        ctx.restore();
-                        avatarLoaded = true;
-                        break;
                     }
                 }
                 catch {
@@ -372,7 +360,7 @@ export class WelcomeCardGenerator {
             ctx.restore();
         }
         // 4. Texts and typography
-        const FONT_FAMILY = '"Segoe UI", "Noto Color Emoji", "Apple Color Emoji", "Segoe UI Emoji", "Inter", Arial, sans-serif';
+        const FONT_FAMILY = '"Inter", "Noto Color Emoji", "Segoe UI Emoji", "Apple Color Emoji", Arial, sans-serif';
         // Subtitle / Category Badge
         const defaultSubtitle = options.theme === 'crimson' || options.theme === 'goodbye' ? 'TOPLULUKTAN AYRILDI' : 'TOPLULUĞA KATILDI';
         const subtitle = options.subtitle || defaultSubtitle;
