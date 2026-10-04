@@ -117,18 +117,19 @@ export class WelcomeGoodbyeService {
         const config = this.db.getGuildConfig(guild.id);
         const count = memberCount ?? guild.member_count ?? guild.members?.length ?? 1;
         const avatarUrl = await this.resolveAvatarUrl(user, member, guild.id);
+        const formattedWelcome = WelcomeGoodbyeService.formatTemplate(config.welcome_message || '👋 Hoş geldin {user}! Sunucuya katılan **{memberCount}.** üyemizsin.', user, guild, count);
         let cardBuffer = null;
         try {
-            const welcomeSentence = config.welcome_message
-                ? WelcomeGoodbyeService.formatTemplate(config.welcome_message, user, guild, count)
-                    .replace(/<@!?\d+>/g, `@${user.username}`)
-                    .split('\n')[0]
-                : `${guild.name || 'BROFIST'} Kabilesine Hoş geldin! 👊`;
+            const welcomeSentence = formattedWelcome
+                .replace(/<@!?\d+>/g, `@${user.username}`)
+                .replace(/<a?:[a-zA-Z0-9_]+:\d+>/g, '') // strip custom emoji tags from image canvas
+                .split('\n')[0]
+                .trim();
             cardBuffer = await WelcomeCardGenerator.generateCard({
                 username: user.username,
                 avatarUrl,
                 subtitle: config.welcome_card_subtitle || 'TOPLULUĞA KATILDI',
-                welcomeText: welcomeSentence,
+                welcomeText: welcomeSentence || `${guild.name || 'Topluluk'} Ailesine Hoş geldin!`,
                 brandingText: 'Kortex',
                 sloganText: config.welcome_card_slogan || 'Karanlıkta parlayan yeni bir yıldız.',
                 customColor: config.welcome_card_color || undefined,
@@ -139,9 +140,9 @@ export class WelcomeGoodbyeService {
         catch (err) {
             console.error('[WelcomeGoodbyeService] Error generating welcome card image:', err);
         }
+        const messageContent = prefixNotice ? `${prefixNotice}\n${formattedWelcome}` : formattedWelcome;
         if (cardBuffer) {
-            // Send ONLY the visual image (no embed, no outer text)
-            await this.api.sendMessage(channelId, prefixNotice || '', {
+            await this.api.sendMessage(channelId, messageContent, {
                 files: [
                     {
                         name: 'welcome.png',
@@ -152,9 +153,7 @@ export class WelcomeGoodbyeService {
             });
         }
         else {
-            // Fallback message if image generation fails
-            const fallbackMsg = prefixNotice ? `${prefixNotice}\nHoş geldin <@${user.id}>!` : `Hoş geldin <@${user.id}>!`;
-            await this.api.sendMessage(channelId, fallbackMsg);
+            await this.api.sendMessage(channelId, messageContent);
         }
     }
     /**
@@ -164,19 +163,20 @@ export class WelcomeGoodbyeService {
         const config = this.db.getGuildConfig(guild.id);
         const count = memberCount ?? guild.member_count ?? guild.members?.length ?? 1;
         const avatarUrl = await this.resolveAvatarUrl(user, member, guild.id);
-        let cardBuffer = null;
         const resolvedUsername = user?.username || user?.global_name || user?.nick || member?.nick || member?.user?.username || 'Üye';
+        const formattedGoodbye = WelcomeGoodbyeService.formatTemplate(config.goodbye_message || '👋 **{username}** sunucudan ayrıldı. Kalan üye sayısı: **{memberCount}**.', user, guild, count);
+        let cardBuffer = null;
         try {
-            const goodbyeSentence = config.goodbye_message
-                ? WelcomeGoodbyeService.formatTemplate(config.goodbye_message, user, guild, count)
-                    .replace(/<@!?\d+>/g, `@${resolvedUsername}`)
-                    .split('\n')[0]
-                : 'Yolun açık olsun, tekrar bekleriz! 👋';
+            const goodbyeSentence = formattedGoodbye
+                .replace(/<@!?\d+>/g, `@${resolvedUsername}`)
+                .replace(/<a?:[a-zA-Z0-9_]+:\d+>/g, '') // strip custom emoji tags from image canvas
+                .split('\n')[0]
+                .trim();
             cardBuffer = await WelcomeCardGenerator.generateGoodbyeCard({
                 username: resolvedUsername,
                 avatarUrl,
                 subtitle: config.goodbye_card_subtitle || 'TOPLULUKTAN AYRILDI',
-                welcomeText: goodbyeSentence,
+                welcomeText: goodbyeSentence || 'Yolun açık olsun, tekrar bekleriz!',
                 brandingText: 'Kortex',
                 sloganText: config.goodbye_card_slogan || 'Disconnecting... ama izler kalır.',
                 customColor: config.goodbye_card_color || '#f43f5e',
@@ -188,9 +188,9 @@ export class WelcomeGoodbyeService {
         catch (err) {
             console.error('[WelcomeGoodbyeService] Error generating goodbye card image:', err);
         }
+        const messageContent = prefixNotice ? `${prefixNotice}\n${formattedGoodbye}` : formattedGoodbye;
         if (cardBuffer) {
-            // Send ONLY the visual image (no embed, no outer text)
-            await this.api.sendMessage(channelId, prefixNotice || '', {
+            await this.api.sendMessage(channelId, messageContent, {
                 files: [
                     {
                         name: 'goodbye.png',
@@ -201,9 +201,7 @@ export class WelcomeGoodbyeService {
             });
         }
         else {
-            // Fallback message if image generation fails
-            const fallbackMsg = prefixNotice ? `${prefixNotice}\n**${resolvedUsername}** sunucumuzdan ayrıldı.` : `**${resolvedUsername}** sunucumuzdan ayrıldı.`;
-            await this.api.sendMessage(channelId, fallbackMsg);
+            await this.api.sendMessage(channelId, messageContent);
         }
     }
     // -------------------------------------------------------------

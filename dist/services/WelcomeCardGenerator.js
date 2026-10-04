@@ -1,6 +1,25 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
-import { createCanvas, loadImage } from '@napi-rs/canvas';
+import { createCanvas, loadImage, GlobalFonts } from '@napi-rs/canvas';
+import fs from 'node:fs';
+import path from 'node:path';
 import { isSafeHttpUrl, safeFetch } from '../utils/security.js';
+try {
+    GlobalFonts.loadSystemFonts();
+}
+catch { }
+const emojiFontCandidates = [
+    path.resolve(process.cwd(), 'src', 'assets', 'fonts', 'NotoColorEmoji.ttf'),
+    path.resolve(process.cwd(), 'dist', 'assets', 'fonts', 'NotoColorEmoji.ttf'),
+    path.resolve(process.cwd(), 'assets', 'fonts', 'NotoColorEmoji.ttf'),
+];
+for (const fontPath of emojiFontCandidates) {
+    if (fs.existsSync(fontPath)) {
+        try {
+            GlobalFonts.registerFromPath(fontPath, 'Noto Color Emoji');
+            break;
+        }
+        catch { }
+    }
+}
 function parseHex(hex) {
     let clean = hex.replace('#', '').trim();
     if (clean.length === 3) {
@@ -353,7 +372,7 @@ export class WelcomeCardGenerator {
             ctx.restore();
         }
         // 4. Texts and typography
-        const FONT_FAMILY = '"Segoe UI", "Segoe UI Emoji", "Inter", Arial, "Apple Color Emoji", "Noto Color Emoji", sans-serif';
+        const FONT_FAMILY = '"Segoe UI", "Noto Color Emoji", "Apple Color Emoji", "Segoe UI Emoji", "Inter", Arial, sans-serif';
         // Subtitle / Category Badge
         const defaultSubtitle = options.theme === 'crimson' || options.theme === 'goodbye' ? 'TOPLULUKTAN AYRILDI' : 'TOPLULUĞA KATILDI';
         const subtitle = options.subtitle || defaultSubtitle;
