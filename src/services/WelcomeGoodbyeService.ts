@@ -98,7 +98,8 @@ export class WelcomeGoodbyeService {
         return memberAvatar;
       }
       const clean = memberAvatar.replace(/\.(png|gif|webp|jpe?g)$/i, '');
-      const ext = 'png';
+      const isAnimated = clean.startsWith('a_') || memberAvatar.toLowerCase().includes('gif');
+      const ext = isAnimated ? 'gif' : 'png';
       if (guildId) {
         return `https://micup.gg/media/guilds/${guildId}/users/${user.id}/avatars/${clean}.${ext}`;
       }
@@ -107,10 +108,11 @@ export class WelcomeGoodbyeService {
 
     if (userAvatar) {
       if (userAvatar.startsWith('http://') || userAvatar.startsWith('https://')) {
-        return userAvatar.replace(/\.gif(\?.*)?$/i, '.png$1');
+        return userAvatar;
       }
       const clean = userAvatar.replace(/\.(png|gif|webp|jpe?g)$/i, '');
-      const ext = 'png';
+      const isAnimated = clean.startsWith('a_') || userAvatar.toLowerCase().includes('gif');
+      const ext = isAnimated ? 'gif' : 'png';
       return `https://micup.gg/media/avatars/${user.id}/${clean}.${ext}`;
     }
 

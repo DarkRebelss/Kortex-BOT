@@ -28,20 +28,29 @@ export class OwoLevelCardGenerator {
         if (!isSafeHttpUrl(url))
             return null;
         const urlsToTry = [];
-        // Micup (Fluxer) avatar URLs: prioritize clean static .png / .webp over animated .gif
-        if (url.includes('.gif') || url.includes('/a_')) {
-            const cleanUrl = url.replace(/\.(png|gif|webp|jpe?g)(\?.*)?$/i, '');
+        const cleanUrl = url.replace(/\.(png|gif|webp|jpe?g)(\?.*)?$/i, '');
+        const isAnimated = url.includes('.gif') || url.includes('/a_');
+        if (isAnimated) {
+            urlsToTry.push(`${cleanUrl}.gif`);
+            urlsToTry.push(url);
             urlsToTry.push(`${cleanUrl}.png`);
             urlsToTry.push(`${cleanUrl}.webp`);
         }
-        urlsToTry.push(url);
-        // If it's a Micup media avatars URL, ensure direct micup.gg static endpoint is in candidates
+        else {
+            urlsToTry.push(`${cleanUrl}.png`);
+            urlsToTry.push(`${cleanUrl}.webp`);
+            urlsToTry.push(url);
+        }
         const mediaMatch = url.match(/avatars\/([^/]+)\/([^/.]+)/);
         if (mediaMatch) {
             const uId = mediaMatch[1];
             const aHash = mediaMatch[2].replace(/\.(png|gif|webp|jpe?g)$/i, '');
+            if (aHash.startsWith('a_')) {
+                urlsToTry.push(`https://micup.gg/media/avatars/${uId}/${aHash}.gif`);
+                urlsToTry.push(`https://media.micup.gg/avatars/${uId}/${aHash}.gif`);
+            }
             urlsToTry.push(`https://micup.gg/media/avatars/${uId}/${aHash}.png`);
-            urlsToTry.push(`https://micup.gg/media/avatars/${uId}/${aHash}.webp`);
+            urlsToTry.push(`https://media.micup.gg/avatars/${uId}/${aHash}.png`);
         }
         for (const targetUrl of urlsToTry) {
             if (!isSafeHttpUrl(targetUrl))
@@ -160,19 +169,30 @@ export class OwoLevelCardGenerator {
         ctx.beginPath();
         ctx.roundRect(avX, avY, avSize, avSize, avRadius);
         ctx.clip();
+        ctx.fillStyle = '#12131a';
+        ctx.fillRect(avX, avY, avSize, avSize);
         if (avatarImg) {
-            const aRatio = avatarImg.width / avatarImg.height;
             let asx = 0;
             let asy = 0;
             let asW = avatarImg.width;
             let asH = avatarImg.height;
-            if (aRatio > 1) {
-                asW = avatarImg.height;
-                asx = (avatarImg.width - asW) / 2;
+            // Handle vertical spritesheets (Micup/Fluxer GIF->PNG conversion)
+            if (avatarImg.height > avatarImg.width && (avatarImg.height % avatarImg.width === 0 || avatarImg.height >= avatarImg.width * 2)) {
+                asH = avatarImg.width;
+                asW = avatarImg.width;
+                asx = 0;
+                asy = 0;
             }
             else {
-                asH = avatarImg.width;
-                asy = (avatarImg.height - asH) / 2;
+                const aRatio = avatarImg.width / avatarImg.height;
+                if (aRatio > 1) {
+                    asW = avatarImg.height;
+                    asx = (avatarImg.width - asW) / 2;
+                }
+                else if (aRatio < 1) {
+                    asH = avatarImg.width;
+                    asy = (avatarImg.height - asH) / 2;
+                }
             }
             ctx.drawImage(avatarImg, asx, asy, asW, asH, avX, avY, avSize, avSize);
         }

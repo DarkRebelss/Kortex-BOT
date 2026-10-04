@@ -387,18 +387,22 @@ export class OwoService {
 
     if (memberAvatar) {
       if (memberAvatar.startsWith('http')) {
-        return memberAvatar.replace(/\.gif(\?.*)?$/i, '.png$1');
+        return memberAvatar;
       }
       const clean = memberAvatar.replace(/\.(png|gif|webp|jpe?g)$/i, '');
-      if (guildId) return `https://micup.gg/media/guilds/${guildId}/users/${user.id}/avatars/${clean}.png`;
-      return `https://micup.gg/media/avatars/${user.id}/${clean}.png`;
+      const isAnimated = clean.startsWith('a_') || memberAvatar.toLowerCase().includes('gif');
+      const ext = isAnimated ? 'gif' : 'png';
+      if (guildId) return `https://micup.gg/media/guilds/${guildId}/users/${user.id}/avatars/${clean}.${ext}`;
+      return `https://micup.gg/media/avatars/${user.id}/${clean}.${ext}`;
     }
     if (userAvatar) {
       if (userAvatar.startsWith('http')) {
-        return userAvatar.replace(/\.gif(\?.*)?$/i, '.png$1');
+        return userAvatar;
       }
       const clean = userAvatar.replace(/\.(png|gif|webp|jpe?g)$/i, '');
-      return `https://micup.gg/media/avatars/${user.id}/${clean}.png`;
+      const isAnimated = clean.startsWith('a_') || userAvatar.toLowerCase().includes('gif');
+      const ext = isAnimated ? 'gif' : 'png';
+      return `https://micup.gg/media/avatars/${user.id}/${clean}.${ext}`;
     }
     try {
       const idx = Number(BigInt(user.id) % 6n);

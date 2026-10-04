@@ -261,16 +261,30 @@ export class WelcomeCardGenerator {
         let avatarLoaded = false;
         if (options.avatarUrl) {
             const urlsToTry = [];
-            // Micup (Fluxer) avatar URLs: prioritize clean static .png / .webp over animated .gif
             const cleanUrl = options.avatarUrl.replace(/\.(png|gif|webp|jpe?g)(\?.*)?$/i, '');
-            urlsToTry.push(`${cleanUrl}.png`);
-            urlsToTry.push(`${cleanUrl}.webp`);
-            urlsToTry.push(options.avatarUrl);
+            const isAnimated = options.avatarUrl.includes('/a_') || options.avatarUrl.toLowerCase().includes('.gif');
+            if (isAnimated) {
+                // For animated avatars on Micup (Fluxer), prioritize native .gif to decode frame 0 cleanly
+                urlsToTry.push(`${cleanUrl}.gif`);
+                urlsToTry.push(options.avatarUrl);
+                urlsToTry.push(`${cleanUrl}.png`);
+                urlsToTry.push(`${cleanUrl}.webp`);
+            }
+            else {
+                urlsToTry.push(`${cleanUrl}.png`);
+                urlsToTry.push(`${cleanUrl}.webp`);
+                urlsToTry.push(options.avatarUrl);
+            }
             const mediaMatch = options.avatarUrl.match(/avatars\/([^/]+)\/([^/.]+)/);
             if (mediaMatch) {
                 const uId = mediaMatch[1];
                 const aHash = mediaMatch[2].replace(/\.(png|gif|webp|jpe?g)$/i, '');
+                if (aHash.startsWith('a_')) {
+                    urlsToTry.push(`https://micup.gg/media/avatars/${uId}/${aHash}.gif`);
+                    urlsToTry.push(`https://media.micup.gg/avatars/${uId}/${aHash}.gif`);
+                }
                 urlsToTry.push(`https://micup.gg/media/avatars/${uId}/${aHash}.png`);
+                urlsToTry.push(`https://media.micup.gg/avatars/${uId}/${aHash}.png`);
             }
             for (const url of urlsToTry) {
                 if (!isSafeHttpUrl(url))
@@ -284,18 +298,31 @@ export class WelcomeCardGenerator {
                         ctx.beginPath();
                         ctx.arc(cx, cy, avatarRadius - 1, 0, Math.PI * 2);
                         ctx.clip();
-                        const imgRatio = avatarImg.width / avatarImg.height;
+                        // Dark backdrop so transparent avatar areas look crisp, authentic, and grounded
+                        ctx.fillStyle = '#12131a';
+                        ctx.fillRect(cx - avatarRadius, cy - avatarRadius, avatarRadius * 2, avatarRadius * 2);
                         let sWidth = avatarImg.width;
                         let sHeight = avatarImg.height;
                         let sx = 0;
                         let sy = 0;
-                        if (imgRatio > 1) {
-                            sWidth = avatarImg.height;
-                            sx = (avatarImg.width - sWidth) / 2;
-                        }
-                        else if (imgRatio < 1) {
+                        // Handle vertical spritesheets (Micup/Fluxer media converts animated GIFs to vertical PNG spritesheets)
+                        if (avatarImg.height > avatarImg.width && (avatarImg.height % avatarImg.width === 0 || avatarImg.height >= avatarImg.width * 2)) {
+                            // Frame 0 of spritesheet (first square frame)
                             sHeight = avatarImg.width;
-                            sy = (avatarImg.height - sHeight) / 2;
+                            sWidth = avatarImg.width;
+                            sx = 0;
+                            sy = 0;
+                        }
+                        else {
+                            const imgRatio = avatarImg.width / avatarImg.height;
+                            if (imgRatio > 1) {
+                                sWidth = avatarImg.height;
+                                sx = (avatarImg.width - sWidth) / 2;
+                            }
+                            else if (imgRatio < 1) {
+                                sHeight = avatarImg.width;
+                                sy = (avatarImg.height - sHeight) / 2;
+                            }
                         }
                         ctx.drawImage(avatarImg, sx, sy, sWidth, sHeight, cx - avatarRadius, cy - avatarRadius, avatarRadius * 2, avatarRadius * 2);
                         ctx.restore();
