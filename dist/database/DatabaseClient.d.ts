@@ -337,7 +337,6 @@ export declare class DatabaseClient {
     getLevelRoles(guildId: string): GuildLevelRoleRecord[];
     addLevelRole(guildId: string, level: number, roleId: string): void;
     removeLevelRole(guildId: string, level: number): boolean;
-    walCheckpoint(): void;
     setAfk(guildId: string, userId: string, reason: string): void;
     getAfk(guildId: string, userId: string): AfkRecord | null;
     removeAfk(guildId: string, userId: string): boolean;

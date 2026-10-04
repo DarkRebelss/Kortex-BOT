@@ -2102,6 +2102,14 @@ export class DatabaseClient {
     }
   }
 
+  walCheckpoint(): void {
+    try {
+      this.db.exec('PRAGMA wal_checkpoint(TRUNCATE);');
+    } catch (err: any) {
+      console.warn(`[DatabaseClient] walCheckpoint uyarısı: ${err.message}`);
+    }
+  }
+
   close(): void {
     this.walCheckpoint();
     this.db.close();
