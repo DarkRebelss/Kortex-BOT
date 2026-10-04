@@ -1,4 +1,4 @@
-# ⚡ Kortex — Profesyonel Yönetim, Moderasyon, Müzik & Topluluk Botu
+# ⚡ Kortex — Profesyonel Yönetim, Moderasyon, Müzik, OwO ve Topluluk Botu
 
 Micup (Fluxer) mesajlaşma ve topluluk platformu için özel olarak geliştirilmiş kurumsal düzeyde **Yönetim, Güvenlik, Jockie Müzik, Prosedürel Kart Tasarımı, Seviye (Leveling) ve OwO Ekonomi Botu**.
 
