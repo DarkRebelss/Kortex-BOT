@@ -1,0 +1,38 @@
+# Node Dependencies
+node_modules/
+
+# TypeScript Build Output
+dist/
+
+# Environment Variables & Secrets (CRITICAL: Do NOT commit!)
+.env
+.env.local
+.env.*.local
+
+# SQLite Database & Backups (Keep local data private)
+data/*.db
+data/*.db-wal
+data/*.db-shm
+data/*.sqlite
+data/*.sqlite-wal
+data/*.sqlite-shm
+data/backups/
+!data/.gitkeep
+
+# Logs & Temporary Files
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# System & IDE files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Scratch & Temporary
+scratch/
+scratch_*

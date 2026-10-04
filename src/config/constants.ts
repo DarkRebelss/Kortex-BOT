@@ -1,0 +1,101 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
+/**
+ * Fluxer Gateway Opcodes
+ * Discord Gateway v1 protocol compatibility
+ */
+export const GatewayOpcodes = {
+  DISPATCH: 0,
+  HEARTBEAT: 1,
+  IDENTIFY: 2,
+  PRESENCE_UPDATE: 3,
+  VOICE_STATE_UPDATE: 4,
+  VOICE_SERVER_PING: 5,
+  RESUME: 6,
+  RECONNECT: 7,
+  REQUEST_GUILD_MEMBERS: 8,
+  INVALID_SESSION: 9,
+  HELLO: 10,
+  HEARTBEAT_ACK: 11,
+  GATEWAY_ERROR: 12,
+  LAZY_REQUEST: 14,
+  REQUEST_GUILD_COUNTS: 15,
+  REQUEST_CHANNEL_MEMBER_COUNTS: 16,
+} as const;
+
+/**
+ * Fluxer 64-bit Permission Bitmask Flags
+ */
+export const Permissions = {
+  CREATE_INSTANT_INVITE: 1n << 0n,
+  KICK_MEMBERS: 1n << 1n,
+  BAN_MEMBERS: 1n << 2n,
+  ADMINISTRATOR: 1n << 3n,
+  MANAGE_CHANNELS: 1n << 4n,
+  MANAGE_GUILD: 1n << 5n,
+  ADD_REACTIONS: 1n << 6n,
+  VIEW_AUDIT_LOG: 1n << 7n,
+  PRIORITY_SPEAKER: 1n << 8n,
+  STREAM: 1n << 9n,
+  VIEW_CHANNEL: 1n << 10n,
+  SEND_MESSAGES: 1n << 11n,
+  SEND_TTS_MESSAGES: 1n << 12n,
+  MANAGE_MESSAGES: 1n << 13n,
+  EMBED_LINKS: 1n << 14n,
+  ATTACH_FILES: 1n << 15n,
+  READ_MESSAGE_HISTORY: 1n << 16n,
+  MENTION_EVERYONE: 1n << 17n,
+  USE_EXTERNAL_EMOJIS: 1n << 18n,
+  CONNECT: 1n << 20n,
+  SPEAK: 1n << 21n,
+  MUTE_MEMBERS: 1n << 22n,
+  DEAFEN_MEMBERS: 1n << 23n,
+  MOVE_MEMBERS: 1n << 24n,
+  USE_VAD: 1n << 25n,
+  CHANGE_NICKNAME: 1n << 26n,
+  MANAGE_NICKNAMES: 1n << 27n,
+  MANAGE_ROLES: 1n << 28n,
+  MANAGE_WEBHOOKS: 1n << 29n,
+  MANAGE_EXPRESSIONS: 1n << 30n,
+  USE_EXTERNAL_STICKERS: 1n << 37n,
+  MODERATE_MEMBERS: 1n << 40n,
+  CREATE_EXPRESSIONS: 1n << 43n,
+  PIN_MESSAGES: 1n << 51n,
+  BYPASS_SLOWMODE: 1n << 52n,
+  UPDATE_RTC_REGION: 1n << 53n,
+  VIEW_CHANNEL_MEMBERS: 1n << 54n,
+} as const;
+
+export const ElevatedPermissions =
+  Permissions.KICK_MEMBERS |
+  Permissions.BAN_MEMBERS |
+  Permissions.ADMINISTRATOR |
+  Permissions.MANAGE_CHANNELS |
+  Permissions.MANAGE_GUILD |
+  Permissions.MANAGE_ROLES |
+  Permissions.MANAGE_MESSAGES |
+  Permissions.MANAGE_WEBHOOKS |
+  Permissions.MANAGE_EXPRESSIONS |
+  Permissions.MODERATE_MEMBERS;
+
+export const AuditLogActionType = {
+  GUILD_UPDATE: 1,
+  CHANNEL_CREATE: 10,
+  CHANNEL_UPDATE: 11,
+  CHANNEL_DELETE: 12,
+  MEMBER_KICK: 20,
+  MEMBER_PRUNE: 21,
+  MEMBER_BAN_ADD: 22,
+  MEMBER_BAN_REMOVE: 23,
+  MEMBER_UPDATE: 24,
+  MEMBER_ROLE_UPDATE: 25,
+  BOT_ADD: 28,
+  ROLE_CREATE: 30,
+  ROLE_UPDATE: 31,
+  ROLE_DELETE: 32,
+  INVITE_CREATE: 40,
+  INVITE_UPDATE: 41,
+  INVITE_DELETE: 42,
+  MESSAGE_DELETE: 72,
+  MESSAGE_BULK_DELETE: 73,
+} as const;

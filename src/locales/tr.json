@@ -1,0 +1,88 @@
+{
+  "common": {
+    "success": "Başarılı",
+    "error": "Hata",
+    "unknown": "Bilinmiyor",
+    "none": "Belirtilmedi",
+    "system": "Sistem"
+  },
+  "errors": {
+    "no_permission": "❌ Bu komutu kullanmak için gereken yetkiye sahip değilsiniz.",
+    "bot_missing_permission": "❌ Botun bu işlemi gerçekleştirmek için yeterli sunucu yetkisi bulunmuyor: **{permission}**",
+    "bot_hierarchy": "❌ **Bot Hiyerarşi Engeli:** Botun rolü (**{botRole}**), hedef kullanıcının rolünden (**{targetRole}**) daha düşük veya eşit olduğu için bu işlem uygulanamaz. Lütfen Sunucu Ayarları > Roller bölümünden botun rolünü hedef kullanıcının üstüne taşıyın.",
+    "user_hierarchy": "❌ **Rol Hiyerarşisi Engeli:** Hedef kullanıcının rolü (**{targetRole}**) sizin en yüksek rolünüzden (**{userRole}**) daha üstte veya eşit olduğu için bu kullanıcıya işlem yapamazsınız.",
+    "role_hierarchy_bot": "❌ Bu rol botun en yüksek rolünden daha yukarıda olduğu için yönetilemez.",
+    "target_owner": "❌ Sunucu sahibine hiçbir moderasyon işlemi uygulanamaz.",
+    "target_admin": "❌ Hedef kullanıcı Yönetici (Administrator) yetkisine sahip olduğu için bu işlem uygulanamaz.",
+    "target_self": "❌ Kendinize bu işlemi uygulayamazsınız.",
+    "target_bot": "❌ Bot kendi kendine bu işlemi uygulayamaz.",
+    "user_not_found": "❌ Kullanıcı bulunamadı. Lütfen geçerli bir kullanıcı etiketleyin veya ID girin.",
+    "role_not_found": "❌ Belirtilen rol sunucuda bulunamadı.",
+    "channel_not_found": "❌ Belirtilen kanal bulunamadı.",
+    "invalid_duration": "❌ Geçersiz süre formatı! Örnekler: `10s`, `5m`, `1h`, `1d`, `7d`.",
+    "invalid_number": "❌ Lütfen geçerli bir sayı girin (1 ile 100 arasında).",
+    "guild_only": "❌ Bu komut yalnızca bir sunucu kanalında kullanılabilir.",
+    "command_error": "❌ Komut çalıştırılırken beklenmeyen bir hata oluştu: {error}"
+  },
+  "moderation": {
+    "ban_success": "🔨 **{target}** başarıyla sunucudan yasaklandı.\n**Sebep:** {reason}\n**Moderatör:** {moderator}",
+    "unban_success": "🔓 **{target}** kullanıcısının sunucu yasağı kaldırıldı.\n**Moderatör:** {moderator}",
+    "unban_not_banned": "ℹ️ **{target}** kullanıcısının bu sunucuda aktif bir yasağı bulunmuyor (kullanıcı yasaklı değil).",
+    "kick_success": "👢 **{target}** başarıyla sunucudan atıldı.\n**Sebep:** {reason}\n**Moderatör:** {moderator}",
+    "timeout_success": "⏳ **{target}** kullanıcısına **{duration}** süreyle zamanaşımı uygulandı.\n**Sebep:** {reason}\n**Bitiş:** {expiresAt}",
+    "untimeout_success": "⌛ **{target}** kullanıcısının zamanaşımı kaldırıldı.\n**Moderatör:** {moderator}",
+    "clear_success": "🧹 **{count}** adet mesaj başarıyla silindi.",
+    "clear_user_success": "🧹 **{target}** kullanıcısına ait son **{count}** mesaj temizlendi.",
+    "warn_added": "⚠️ **{target}** uyarıldı! (Uyarı #{id})\n**Sebep:** {reason}\n**Toplam Aktif Uyarı:** {totalWarnings}",
+    "warn_removed": "✅ Uyarı #{id} başarıyla silindi.",
+    "warn_removed_count": "✅ **{target}** kullanıcısından **{count}** adet uyarı silindi. (Kalan aktif uyarı: **{remaining}**)",
+    "warn_user_no_warnings": "✨ **{target}** kullanıcısının aktif uyarısı bulunmuyor.",
+    "warn_cannot_remove_self": "❌ Kendi uyarınızı kaldıramazsınız.",
+    "warn_not_found": "❌ Belirtilen ID'ye sahip aktif uyarı bulunamadı.",
+    "warnings_header": "📋 **{target}** kullanıcısının uyarı geçmişi ({count} aktif uyarı):",
+    "warnings_empty": "✨ **{target}** kullanıcısının herhangi bir uyarısı bulunmuyor.",
+    "auto_punishment_triggered": "🚨 **{target}** kullanıcısı **{count}** uyarıya ulaştığı için otomatik olarak **{action}** uygulandı."
+  },
+  "roles": {
+    "add_success": "✅ **{target}** kullanıcısına **{role}** rolü verildi.",
+    "remove_success": "🗑️ **{target}** kullanıcısından **{role}** rolü alındı.",
+    "already_has_role": "ℹ️ Kullanıcı zaten bu role sahip.",
+    "does_not_have_role": "ℹ️ Kullanıcı bu role sahip değil.",
+    "autorole_set": "✅ Yeni üyelere otomatik verilecek rol **{role}** olarak ayarlandı.",
+    "autorole_removed": "🗑️ Otomatik rol özelliği kapatıldı.",
+    "autorole_status": "ℹ️ Mevcut otomatik rol: **{role}** (Durum: {status})"
+  },
+  "welcome_goodbye": {
+    "welcome_default": "👋 Hoş geldin {user}! Sunucuya katılan **{memberCount}.** üyemizsin.",
+    "goodbye_default": "👋 **{username}** sunucudan ayrıldı. Kalan üye sayısı: **{memberCount}**.",
+    "welcome_set": "✅ Hoş geldin kanalı **#{channel}** olarak ayarlandı.",
+    "welcome_msg_set": "✅ Hoş geldin mesajı güncellendi:\n{message}",
+    "welcome_status": "ℹ️ Hoş geldin sistemi: **{status}** (Kanal: {channel})",
+    "goodbye_set": "✅ Ayrılma (Güle güle) kanalı **#{channel}** olarak ayarlandı.",
+    "goodbye_msg_set": "✅ Ayrılma mesajı güncellendi:\n{message}",
+    "goodbye_status": "ℹ️ Ayrılma sistemi: **{status}** (Kanal: {channel})"
+  },
+  "security": {
+    "antispam_status": "🛡️ Anti-Spam Koruması: **{status}**\n• Maksimum Mesaj: {maxMessages}\n• Aralık: {interval} saniye\n• Ceza Türü: {punishment}",
+    "antispam_triggered": "⚠️ **{target}**, lütfen spam yapmayın! (Mesajlarınız silindi ve geçici susturma uygulandı)",
+    "antilink_status": "🔗 Anti-Link Koruması: **{status}**\n• Beyaz Liste: {whitelist}",
+    "antilink_triggered": "⛔ **{target}**, bu sunucuda harici bağlantı veya davet linki paylaşmak yasaktır!",
+    "antilink_whitelist_added": "✅ **{domain}** güvenli bağlantı listesine (whitelist) eklendi.",
+    "antilink_whitelist_removed": "🗑️ **{domain}** beyaz listeden çıkarıldı."
+  },
+  "modlog": {
+    "channel_set": "✅ Moderasyon log kanalı **#{channel}** olarak ayarlandı.",
+    "channel_unset": "🗑️ Moderasyon log kanalı kaldırıldı.",
+    "title_ban": "🚨 Üye Yasaklandı (Ban)",
+    "title_unban": "🔓 Yasak Kaldırıldı (Unban)",
+    "title_kick": "👢 Üye Atıldı (Kick)",
+    "title_timeout": "⏳ Zamanaşımı (Timeout)",
+    "title_untimeout": "⌛ Zamanaşımı Kaldırıldı",
+    "title_warn": "⚠️ Uyarı Verildi",
+    "title_role_add": "🏷️ Rol Verildi",
+    "title_role_remove": "🏷️ Rol Alındı",
+    "title_clear": "🧹 Mesajlar Temizlendi",
+    "title_member_join": "📥 Üye Katıldı",
+    "title_member_leave": "📤 Üye Ayrıldı"
+  }
+}
