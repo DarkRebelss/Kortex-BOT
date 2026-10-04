@@ -27,15 +27,56 @@ export class OwoLevelCardGenerator {
     static async fetchImage(url) {
         if (!isSafeHttpUrl(url))
             return null;
-        try {
-            const res = await safeFetch(url, { signal: AbortSignal.timeout(4000) });
-            if (res.ok) {
-                const buf = Buffer.from(await res.arrayBuffer());
-                return await loadImage(buf);
-            }
+        const urlsToTry = [url];
+        const cleanUrl = url.replace(/\.(png|gif|webp|jpe?g)(\?.*)?$/i, '');
+        const isAnimated = url.includes('a_') || url.toLowerCase().includes('gif');
+        if (isAnimated) {
+            if (!urlsToTry.includes(`${cleanUrl}.gif`))
+                urlsToTry.unshift(`${cleanUrl}.gif`);
+            if (!urlsToTry.includes(`${cleanUrl}.png`))
+                urlsToTry.push(`${cleanUrl}.png`);
+            if (!urlsToTry.includes(`${cleanUrl}.webp`))
+                urlsToTry.push(`${cleanUrl}.webp`);
         }
-        catch {
-            // Ignore network errors, fall back gracefully
+        else {
+            if (!urlsToTry.includes(`${cleanUrl}.png`))
+                urlsToTry.unshift(`${cleanUrl}.png`);
+            if (!urlsToTry.includes(`${cleanUrl}.gif`))
+                urlsToTry.push(`${cleanUrl}.gif`);
+            if (!urlsToTry.includes(`${cleanUrl}.webp`))
+                urlsToTry.push(`${cleanUrl}.webp`);
+        }
+        // Also try Discord CDN if it's a media URL hash
+        const mediaMatch = url.match(/(?:users\/([^/]+)\/avatars|avatars\/([^/]+))\/([^/.]+)/);
+        if (mediaMatch) {
+            const uId = mediaMatch[1] || mediaMatch[2];
+            const aHash = mediaMatch[3];
+            const aExt = (aHash.startsWith('a_') || aHash.toLowerCase().includes('gif')) ? 'gif' : 'png';
+            urlsToTry.push(`https://cdn.discordapp.com/avatars/${uId}/${aHash}.${aExt}?size=512`);
+            urlsToTry.push(`https://cdn.discordapp.com/avatars/${uId}/${aHash}.png?size=512`);
+        }
+        for (const targetUrl of urlsToTry) {
+            if (!isSafeHttpUrl(targetUrl))
+                continue;
+            try {
+                const res = await safeFetch(targetUrl, {
+                    signal: AbortSignal.timeout(5000),
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                        'Accept': 'image/gif,image/webp,image/png,image/*;q=0.9,*/*;q=0.8',
+                    },
+                });
+                if (res.ok) {
+                    const buf = Buffer.from(await res.arrayBuffer());
+                    const img = await loadImage(buf);
+                    if (img && img.width > 0 && img.height > 0) {
+                        return img;
+                    }
+                }
+            }
+            catch {
+                // Continue to fallback
+            }
         }
         return null;
     }
@@ -67,7 +108,7 @@ export class OwoLevelCardGenerator {
         }
         if (!avatarImg) {
             if (!this.localAvatarCache) {
-                this.localAvatarCache = await this.getLocalAsset('avatar.jpg');
+                this.localAvatarCache = (await this.getLocalAsset('avatar.jpg')) || (await this.getLocalAsset('logo.png'));
             }
             avatarImg = this.localAvatarCache;
         }
@@ -137,6 +178,8 @@ export class OwoLevelCardGenerator {
         ctx.beginPath();
         ctx.roundRect(avX, avY, avSize, avSize, avRadius);
         ctx.clip();
+        ctx.fillStyle = '#181a26';
+        ctx.fillRect(avX, avY, avSize, avSize);
         if (avatarImg) {
             const aRatio = avatarImg.width / avatarImg.height;
             let asx = 0;

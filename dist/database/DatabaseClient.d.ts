@@ -402,5 +402,6 @@ export declare class DatabaseClient {
         display_name: string | null;
     } | null;
     findUserIdByUsername(username: string): string | null;
+    walCheckpoint(): void;
     close(): void;
 }

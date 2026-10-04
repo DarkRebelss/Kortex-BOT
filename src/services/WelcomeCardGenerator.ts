@@ -4,7 +4,7 @@ import path from 'node:path';
 import { isSafeHttpUrl, safeFetch } from '../utils/security.js';
 
 try {
-  GlobalFonts.loadSystemFonts();
+  (GlobalFonts as any).loadSystemFonts?.();
 } catch {}
 
 const emojiFontCandidates = [

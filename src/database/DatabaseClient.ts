@@ -1628,14 +1628,6 @@ export class DatabaseClient {
     return Number(result.changes) > 0;
   }
 
-  walCheckpoint(): void {
-    try {
-      this.db.exec('PRAGMA wal_checkpoint(TRUNCATE);');
-    } catch (err: any) {
-      console.error('[DatabaseClient] WAL checkpoint hatası:', err.message);
-    }
-  }
-
   // -------------------------------------------------------------
   // AFK User Operations
   // -------------------------------------------------------------

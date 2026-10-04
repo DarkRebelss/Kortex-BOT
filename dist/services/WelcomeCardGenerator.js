@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { isSafeHttpUrl, safeFetch } from '../utils/security.js';
 try {
-    GlobalFonts.loadSystemFonts();
+    GlobalFonts.loadSystemFonts?.();
 }
 catch { }
 const emojiFontCandidates = [
