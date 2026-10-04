@@ -1643,6 +1643,14 @@ export class DatabaseClient {
             return null;
         }
     }
+    walCheckpoint() {
+        try {
+            this.db.exec('PRAGMA wal_checkpoint(TRUNCATE);');
+        }
+        catch (err) {
+            console.warn(`[DatabaseClient] walCheckpoint uyarısı: ${err.message}`);
+        }
+    }
     close() {
         this.walCheckpoint();
         this.db.close();
