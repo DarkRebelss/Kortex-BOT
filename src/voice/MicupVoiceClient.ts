@@ -3,7 +3,14 @@
 import fs from 'fs';
 import path from 'path';
 import {spawn, type ChildProcess} from 'child_process';
-import { getFfmpegBinary, getYtDlpInstance, runYtDlp } from '../utils/mediaBinaries.js';
+import {
+  getFfmpegBinary,
+  getYtDlpInstance,
+  runYtDlp,
+  isYouTubeBlocked,
+  markYouTubeBlocked,
+  spawnYtDlpStream,
+} from '../utils/mediaBinaries.js';
 import {
   AudioFrame,
   AudioSource,
@@ -30,6 +37,7 @@ interface GuildVoiceSession {
   source?: AudioSource;
   track?: LocalAudioTrack;
   ffmpegProcess?: ChildProcess;
+  ytdlProcess?: ChildProcess;
   audioInterval?: NodeJS.Timeout;
   audioQueue: Buffer[];
   isPaused: boolean;
@@ -204,14 +212,19 @@ export class MicupVoiceClient {
         session.ffmpegProcess.stdout.resume();
       }
 
-      // Check if audio has completely finished playing
+      // Check if audio has completely finished playing or stream ended
       if (session.audioQueue.length === 0) {
-        if (session.audioStarted && session.ffmpegFinished && !session.isStopping) {
+        if (session.ffmpegFinished && !session.isStopping) {
+          const wasStarted = session.audioStarted;
           session.audioStarted = false;
           session.ffmpegFinished = false;
           const cb = session.onEndedCallback;
           session.onEndedCallback = undefined;
-          console.log(`[MicupVoiceClient] 🎵 Şarkı baştan sona kesintisiz çalındı ve bitti (Sunucu: ${guildId})`);
+          if (wasStarted) {
+            console.log(`[MicupVoiceClient] 🎵 Şarkı baştan sona kesintisiz çalındı ve bitti (Sunucu: ${guildId})`);
+          } else {
+            console.warn(`[MicupVoiceClient] ⚠️ Ses akışından veri alınamadı, sonraki parçaya geçiliyor (Sunucu: ${guildId})`);
+          }
           if (cb) cb();
         }
         return;
@@ -227,10 +240,8 @@ export class MicupVoiceClient {
         const aligned = chunk.byteOffset % 2 === 0 ? chunk : Buffer.from(chunk);
         const src = new Int16Array(aligned.buffer, aligned.byteOffset, totalSamples);
 
-        // Apply perceptual volume scaling where 100% volume is scaled to what was previously 25%
-        // (Comfortable listening level: 100% sounds like the former 25%)
-        const factor = (session.volume !== undefined ? session.volume : 1.0) * 0.25;
-        const vol = factor <= 0 ? 0 : Math.pow(factor, 1.8);
+        // Standard linear volume scaling (session.volume = 1.0 is full standard volume)
+        const vol = Math.max(0, Math.min(2.0, session.volume !== undefined ? session.volume : 1.0));
 
         for (let i = 0; i < totalSamples; i++) {
           const scaled = Math.round(src[i] * vol);
@@ -293,6 +304,7 @@ export class MicupVoiceClient {
     const isSameInput = session.currentInputUrl === inputUrl;
     const shouldHotSwap = isHotSwap || (isSameInput && seekSeconds > 0);
     const oldFfmpeg = session.ffmpegProcess;
+    const oldYtdl = session.ytdlProcess;
 
     if (!shouldHotSwap) {
       this.stopAudio(guildId);
@@ -309,8 +321,6 @@ export class MicupVoiceClient {
     const ffmpegBinary = getFfmpegBinary();
 
     try {
-      let playbackUrl = inputUrl;
-
       // Handle YouTube Mix playlists, Spotify, and search queries
       let queryTarget = inputUrl;
 
@@ -328,6 +338,8 @@ export class MicupVoiceClient {
       const isSearchOrSpotify =
         queryTarget.includes('open.spotify.com') ||
         queryTarget.includes('youtube.com/results') ||
+        queryTarget.startsWith('ytsearch') ||
+        queryTarget.startsWith('scsearch') ||
         !queryTarget.startsWith('http');
 
       if (queryTarget.includes('open.spotify.com')) {
@@ -349,7 +361,7 @@ export class MicupVoiceClient {
             }
             if (title) {
               const safe = (artist ? `${artist} - ${title}` : title).replace(/[^\p{L}\p{N}\s\-_,.()'&/]/gu, '').trim();
-              queryTarget = `ytsearch1:${safe}`;
+              queryTarget = isYouTubeBlocked() ? `scsearch1:${safe}` : `ytsearch1:${safe}`;
               console.log(`[MicupVoiceClient] 🟢 Spotify parçası ses akışı çözümleniyor: "${safe}"`);
             }
           }
@@ -357,161 +369,142 @@ export class MicupVoiceClient {
           console.warn(`[MicupVoiceClient] Spotify metadata çözme uyarısı:`, err.message);
         }
       } else if (isSearchOrSpotify) {
-        const cleanQuery = queryTarget
-          .replace(/^https?:\/\/(?:www\.)?youtube\.com\/results\?search_query=/i, '')
-          .trim() || queryTarget;
-        const alreadyHasPrefix = /^ytsearch\d*:/i.test(cleanQuery);
-        queryTarget = alreadyHasPrefix ? decodeURIComponent(cleanQuery) : `ytsearch1:${decodeURIComponent(cleanQuery)}`;
+        if (!queryTarget.startsWith('ytsearch') && !queryTarget.startsWith('scsearch')) {
+          const cleanQuery = queryTarget
+            .replace(/^https?:\/\/(?:www\.)?youtube\.com\/results\?search_query=/i, '')
+            .trim() || queryTarget;
+          queryTarget = isYouTubeBlocked()
+            ? `scsearch1:${decodeURIComponent(cleanQuery)}`
+            : `ytsearch1:${decodeURIComponent(cleanQuery)}`;
+        }
+      }
+
+      // 🛡️ Eğer YouTube IP bot koruması devredeyse, YouTube video bağlantılarını anında SoundCloud'a çevir
+      if (isYouTubeBlocked()) {
+        if (queryTarget.includes('youtube.com/watch') || queryTarget.includes('youtu.be/')) {
+          try {
+            const oembedRes = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(queryTarget)}&format=json`, {
+              signal: AbortSignal.timeout(4000),
+            });
+            if (oembedRes.ok) {
+              const oembedData: any = await oembedRes.json();
+              const rawTitle = (oembedData.title || '').replace(/\([^)]*\)|\[[^\]]*\]/g, '').trim();
+              if (rawTitle) {
+                console.log(`[MicupVoiceClient] ⚡ YouTube engeli aktif, SoundCloud'a aktarılıyor: "${rawTitle}"`);
+                queryTarget = `scsearch1:${rawTitle}`;
+              }
+            }
+          } catch {}
+        } else if (queryTarget.startsWith('ytsearch')) {
+          queryTarget = queryTarget.replace(/^ytsearch\d*:\s*/i, 'scsearch1:');
+        }
       }
 
       const isDirectOrRadio =
-        !isSearchOrSpotify &&
+        !queryTarget.startsWith('ytsearch') &&
+        !queryTarget.startsWith('scsearch') &&
         (queryTarget.includes('icecast') ||
           queryTarget.includes('zeno.fm') ||
           queryTarget.includes('listenpowerapp') ||
           queryTarget.includes('duhnet') ||
           /\.(mp3|aac|ogg|wav|m4a|flac)(\?.*)?$/i.test(queryTarget));
 
-      // Fast-path: Check memory cache first to eliminate the 5-second freeze on bass/filter changes
-      const cachedDirectUrl = this.getCachedStreamUrl(inputUrl) || this.getCachedStreamUrl(queryTarget);
-      if (cachedDirectUrl) {
-        playbackUrl = cachedDirectUrl;
-        console.log(`[MicupVoiceClient] ⚡ Doğrudan akış URL'si önbellekten anında alındı (0ms bekleme)`);
-      } else if (!isDirectOrRadio) {
-        // Resolve direct stream URL using yt-dlp-exec with noPlaylist to ensure fast response
-        const displayTarget = queryTarget.startsWith('ytsearch1:') ? 'Arka Plan Doğrudan Ses Motoru' : queryTarget.slice(0, 80);
-        console.log(`[MicupVoiceClient] Medya akış URL'si çözülüyor: ${displayTarget}`);
-        try {
-          const ytdlData: any = await runYtDlp(queryTarget, {
-            dumpSingleJson: true,
-            noPlaylist: true,
-            format: 'bestaudio/best',
-          });
-
-          const directCandidate = ytdlData?.url || (Array.isArray(ytdlData?.entries) && ytdlData.entries[0]?.url);
-          if (directCandidate) {
-            playbackUrl = directCandidate;
-          } else if (Array.isArray(ytdlData?.formats)) {
-            const audioFormats = ytdlData.formats.filter(
-              (f: any) => f.resolution === 'audio only' || f.acodec !== 'none',
-            );
-            const best = audioFormats[audioFormats.length - 1];
-            if (best?.url) {
-              playbackUrl = best.url;
-            }
-          }
-
-          // Cache resolved URL for 4 hours
-          if (playbackUrl && playbackUrl !== inputUrl) {
-            this.setCachedStreamUrl(inputUrl, playbackUrl);
-            if (queryTarget !== inputUrl) {
-              this.setCachedStreamUrl(queryTarget, playbackUrl);
-            }
-          }
-        } catch (err: any) {
-          console.warn(`[MicupVoiceClient] yt-dlp ses akışı çözme uyarısı (${err.message}).`);
-          // 🛡️ Otomatik Yedek Akış Kurtarma (SoundCloud Fallback):
-          // Eğer YouTube bot koruması veya veri merkezi IP engeli sebebiyle başarısız olduysa
-          try {
-            let fallbackSearchQuery = '';
-            if (queryTarget.includes('youtube.com/watch') || queryTarget.includes('youtu.be/')) {
-              try {
-                const oembedRes = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(queryTarget)}&format=json`, {
-                  signal: AbortSignal.timeout(4000),
-                });
-                if (oembedRes.ok) {
-                  const oembedData: any = await oembedRes.json();
-                  const rawTitle = oembedData.title || '';
-                  fallbackSearchQuery = rawTitle.replace(/\([^)]*\)|\[[^\]]*\]/g, '').trim();
-                }
-              } catch {}
-            } else if (queryTarget.startsWith('ytsearch')) {
-              fallbackSearchQuery = queryTarget.replace(/^ytsearch\d*:\s*/i, '').trim();
-            }
-
-            if (fallbackSearchQuery) {
-              console.log(`[MicupVoiceClient] 🔄 YouTube IP engeli algılandı, alternatif SoundCloud akışı aranıyor: "${fallbackSearchQuery}"...`);
-              const scSearchRes: any = await runYtDlp(`scsearch1:${fallbackSearchQuery}`, {
-                dumpSingleJson: true,
-                flatPlaylist: true,
-              });
-              const scCandidate = scSearchRes?.entries ? scSearchRes.entries[0] : scSearchRes;
-              const scUrl = scCandidate?.url || scCandidate?.webpage_url;
-              if (scUrl) {
-                console.log(`[MicupVoiceClient] ☁️ SoundCloud eşleşmesi bulundu: "${scCandidate.title || fallbackSearchQuery}"`);
-                const scStreamData: any = await runYtDlp(scUrl, {
-                  dumpSingleJson: true,
-                  format: 'bestaudio/best',
-                });
-                const scStreamUrl = scStreamData?.url || (Array.isArray(scStreamData?.formats) && scStreamData.formats.pop()?.url);
-                if (scStreamUrl) {
-                  playbackUrl = scStreamUrl;
-                  console.log(`[MicupVoiceClient] ✅ Yedek ses akışı SoundCloud üzerinden başarıyla temin edildi!`);
-                  this.setCachedStreamUrl(inputUrl, playbackUrl);
-                  this.setCachedStreamUrl(queryTarget, playbackUrl);
-                }
-              }
-            }
-          } catch (fbErr: any) {
-            console.warn(`[MicupVoiceClient] Yedek SoundCloud akış denemesi başarısız:`, fbErr.message);
-          }
-        }
-      }
-
-      // ⚠️ SON KONTROL: Doğrudan ses akışı doğrulaması
-      // Eğer YouTube, Spotify veya arama URL'i çözümlenemeyip hâlâ web sayfası URL'i olarak kaldıysa FFmpeg'e verme
-      const isUnresolvedWebUrl =
-        playbackUrl.includes('youtube.com/watch') ||
-        playbackUrl.includes('youtu.be/') ||
-        playbackUrl.includes('youtube.com/results') ||
-        playbackUrl.includes('open.spotify.com') ||
-        playbackUrl.startsWith('ytsearch');
-
-      if (!/^https?:\/\//i.test(playbackUrl) || isUnresolvedWebUrl) {
-        const errMsg = `Ses akışı çözümlemesi başarısız: "${String(playbackUrl).slice(0, 80)}" doğrudan ses akışına çevrilemedi. (yt-dlp veya FFmpeg ikili dosyası eksik olabilir)`;
-        console.error(`[MicupVoiceClient] ❌ ${errMsg}`);
-        if (typeof onEnded === 'function') {
-          try { onEnded(); } catch {}
-        }
-        this.setCachedStreamUrl(inputUrl, '');
-        this.setCachedStreamUrl(queryTarget, '');
-        if (!shouldHotSwap) this.stopAudio(guildId);
-        return undefined;
-      }
-
-      console.log(`[MicupVoiceClient] ✅ Geçerli ses URL'i çözüldü: ${String(playbackUrl).slice(0, 80)}...`);
-      console.log(`[MicupVoiceClient] FFmpeg PCM kodlayıcı başlatılıyor... (seek: ${seekSeconds}s, filtre: ${this.getAudioFilter(guildId) || 'Standart'})`);
-
+      let ffmpegProc: ChildProcess;
+      let ytdlProc: ChildProcess | undefined;
       const activeFilter = this.getAudioFilter(guildId);
-      const ffmpegArgs: string[] = [
-        '-reconnect', '1',
-        '-reconnect_streamed', '1',
-        '-reconnect_delay_max', '5',
-        '-user_agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-      ];
 
-      if (seekSeconds > 0) {
-        ffmpegArgs.push('-ss', Math.floor(seekSeconds).toString());
-      }
+      if (isDirectOrRadio) {
+        console.log(`[MicupVoiceClient] 📻 Doğrudan radyo/ses akışı başlatılıyor: ${queryTarget.slice(0, 80)}...`);
+        const ffmpegArgs: string[] = [
+          '-reconnect', '1',
+          '-reconnect_streamed', '1',
+          '-reconnect_delay_max', '5',
+          '-user_agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        ];
 
-      ffmpegArgs.push('-i', playbackUrl);
+        if (seekSeconds > 0) {
+          ffmpegArgs.push('-ss', Math.floor(seekSeconds).toString());
+        }
 
-      if (activeFilter) {
-        ffmpegArgs.push('-af', activeFilter);
-        console.log(`[MicupVoiceClient] 🎛️ FFmpeg ses filtresi uygulandı: ${activeFilter}`);
+        ffmpegArgs.push('-i', queryTarget);
+
+        if (activeFilter) {
+          ffmpegArgs.push('-af', activeFilter);
+          console.log(`[MicupVoiceClient] 🎛️ FFmpeg ses filtresi uygulandı: ${activeFilter}`);
+        } else {
+          ffmpegArgs.push('-af', 'alimiter=limit=0.95:attack=5:release=50:asc=1');
+        }
+
+        ffmpegArgs.push(
+          '-f', 's16le',
+          '-ar', '48000',
+          '-ac', '2',
+          'pipe:1',
+        );
+
+        ffmpegProc = spawn(ffmpegBinary, ffmpegArgs, {stdio: ['ignore', 'pipe', 'pipe']});
       } else {
-        // Default clean audio processing with Otomatik Kazanç Kontrolü (AGC) & Anti-clipping limiter
-        ffmpegArgs.push('-af', 'alimiter=limit=0.95:attack=5:release=50:asc=1');
+        // Direct zero-latency streaming pipe (yt-dlp stdout -> FFmpeg stdin)
+        const displayTarget = queryTarget.startsWith('scsearch1:')
+          ? `SoundCloud Doğrudan Motoru (${queryTarget.replace('scsearch1:', '')})`
+          : queryTarget.startsWith('ytsearch1:')
+          ? `YouTube Doğrudan Motoru (${queryTarget.replace('ytsearch1:', '')})`
+          : queryTarget.slice(0, 80);
+        console.log(`[MicupVoiceClient] 🚀 Doğrudan boru hattı başlatılıyor: ${displayTarget}`);
+
+        ytdlProc = spawnYtDlpStream(queryTarget);
+        session.ytdlProcess = ytdlProc;
+
+        const ffmpegArgs: string[] = [];
+        if (seekSeconds > 0) {
+          ffmpegArgs.push('-ss', Math.floor(seekSeconds).toString());
+        }
+        ffmpegArgs.push('-i', 'pipe:0');
+
+        if (activeFilter) {
+          ffmpegArgs.push('-af', activeFilter);
+          console.log(`[MicupVoiceClient] 🎛️ FFmpeg ses filtresi uygulandı: ${activeFilter}`);
+        } else {
+          ffmpegArgs.push('-af', 'alimiter=limit=0.95:attack=5:release=50:asc=1');
+        }
+
+        ffmpegArgs.push(
+          '-f', 's16le',
+          '-ar', '48000',
+          '-ac', '2',
+          'pipe:1',
+        );
+
+        ffmpegProc = spawn(ffmpegBinary, ffmpegArgs, {stdio: ['pipe', 'pipe', 'pipe']});
+
+        // Prevent unhandled EPIPE crashes
+        ytdlProc.stdout?.on('error', () => {});
+        ffmpegProc.stdin?.on('error', () => {});
+
+        ytdlProc.stdout?.pipe(ffmpegProc.stdin!);
+
+        let ytdlErrBuf = '';
+        ytdlProc.stderr?.on('data', (c: Buffer) => {
+          ytdlErrBuf += c.toString('utf8');
+          if (
+            ytdlErrBuf.includes('Sign in to confirm') ||
+            ytdlErrBuf.includes('bot') ||
+            ytdlErrBuf.includes('429')
+          ) {
+            markYouTubeBlocked();
+          }
+        });
+
+        ytdlProc.on('error', (err: any) => {
+          console.warn(`[MicupVoiceClient] yt-dlp akış hatası:`, err.message);
+          try { ffmpegProc.stdin?.end(); } catch {}
+        });
+
+        ytdlProc.on('close', (code) => {
+          try { ffmpegProc.stdin?.end(); } catch {}
+        });
       }
 
-      ffmpegArgs.push(
-        '-f', 's16le',
-        '-ar', '48000',
-        '-ac', '2',
-        'pipe:1',
-      );
-
-      const ffmpegProc = spawn(ffmpegBinary, ffmpegArgs, {stdio: ['ignore', 'pipe', 'pipe']});
       session.ffmpegProcess = ffmpegProc;
 
       let leftover = Buffer.alloc(0);
@@ -539,6 +532,9 @@ export class MicupVoiceClient {
             if (oldFfmpeg && oldFfmpeg !== ffmpegProc) {
               try { oldFfmpeg.kill(); } catch {}
             }
+            if (oldYtdl && oldYtdl !== session.ytdlProcess) {
+              try { oldYtdl.kill(); } catch {}
+            }
             session.audioQueue = [];
             console.log(`[MicupVoiceClient] ⚡ Kesintisiz ses geçişi sağlandı (Filtre anında uygulandı, donma 0ms)`);
           }
@@ -561,8 +557,12 @@ export class MicupVoiceClient {
 
       ffmpegProc.on('close', (code) => {
         if (session.playId !== currentPlayId) return;
-        console.log(`[MicupVoiceClient] FFmpeg akış okuması tamamlandı (Sunucu: ${guildId}, Kalan kuyruk: ${session.audioQueue.length} parça)`);
+        console.log(`[MicupVoiceClient] FFmpeg akış okuması tamamlandı (Sunucu: ${guildId}, Kalan kuyruk: ${session.audioQueue.length} parça, Çıkış kodu: ${code})`);
         session.ffmpegFinished = true;
+        if (session.ytdlProcess) {
+          try { session.ytdlProcess.kill(); } catch {}
+          session.ytdlProcess = undefined;
+        }
       });
 
       ffmpegProc.on('error', (err: any) => {
@@ -576,13 +576,17 @@ export class MicupVoiceClient {
         }
         if (session.playId === currentPlayId) {
           session.ffmpegFinished = true;
+          if (session.ytdlProcess) {
+            try { session.ytdlProcess.kill(); } catch {}
+            session.ytdlProcess = undefined;
+          }
           if (typeof session.onEndedCallback === 'function') {
             try { session.onEndedCallback(); } catch {}
           }
         }
       });
 
-      return playbackUrl;
+      return queryTarget;
     } catch (err: any) {
       console.error(`[MicupVoiceClient] playAudio genel hatası:`, err.message);
       return undefined;
@@ -613,6 +617,12 @@ export class MicupVoiceClient {
       session.audioQueue = [];
       session.isPaused = false;
       session.currentInputUrl = undefined;
+      if (session.ytdlProcess) {
+        try {
+          session.ytdlProcess.kill();
+        } catch {}
+        session.ytdlProcess = undefined;
+      }
       if (session.ffmpegProcess) {
         try {
           session.ffmpegProcess.kill();

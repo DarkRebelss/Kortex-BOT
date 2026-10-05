@@ -231,6 +231,105 @@ export function ensureCookiesFile(): void {
   }
 }
 
+let youtubeBlockedUntil = 0;
+
+/**
+ * Returns true if YouTube is currently blocked due to datacenter IP bot challenges.
+ */
+export function isYouTubeBlocked(): boolean {
+  return Date.now() < youtubeBlockedUntil;
+}
+
+/**
+ * Marks YouTube as blocked for a cooldown period (default 15 minutes),
+ * allowing the bot to instantly use SoundCloud / alternatives without waiting 30 seconds.
+ */
+export function markYouTubeBlocked(cooldownMs = 15 * 60 * 1000): void {
+  const isFirst = Date.now() >= youtubeBlockedUntil;
+  youtubeBlockedUntil = Date.now() + cooldownMs;
+  if (isFirst) {
+    console.warn(`[MediaBinaries] 🛡️ YouTube IP bot koruması algılandı! (${Math.round(cooldownMs / 60000)} dk boyunca doğrudan alternatif ses motoru kullanılacak).`);
+  }
+}
+
+export function clearYouTubeBlock(): void {
+  youtubeBlockedUntil = 0;
+}
+
+let cachedYtDlpBinary: string | null = null;
+
+/**
+ * Resolves the path to the yt-dlp executable binary.
+ */
+export function getYtDlpBinary(): string {
+  if (cachedYtDlpBinary) return cachedYtDlpBinary;
+
+  // 1. Explicit environment variable
+  const envPath = process.env.YTDLP_PATH || process.env.YOUTUBE_DL_PATH;
+  if (envPath && fs.existsSync(envPath)) {
+    ensureExecutablePermission(envPath);
+    cachedYtDlpBinary = envPath;
+    return envPath;
+  }
+
+  // 2. Default yt-dlp-exec binary path
+  const defaultBin = path.resolve(
+    process.cwd(),
+    'node_modules',
+    'yt-dlp-exec',
+    'bin',
+    process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp',
+  );
+  if (fs.existsSync(defaultBin)) {
+    ensureExecutablePermission(defaultBin);
+    cachedYtDlpBinary = defaultBin;
+    return defaultBin;
+  }
+
+  // 3. Common Linux system paths
+  const commonLinuxPaths = ['/usr/bin/yt-dlp', '/usr/local/bin/yt-dlp', '/bin/yt-dlp'];
+  for (const linuxPath of commonLinuxPaths) {
+    if (fs.existsSync(linuxPath)) {
+      ensureExecutablePermission(linuxPath);
+      cachedYtDlpBinary = linuxPath;
+      return linuxPath;
+    }
+  }
+
+  // 4. Test system PATH 'yt-dlp'
+  if (isCommandAvailable('yt-dlp', '--version')) {
+    cachedYtDlpBinary = 'yt-dlp';
+    return 'yt-dlp';
+  }
+
+  cachedYtDlpBinary = defaultBin;
+  return defaultBin;
+}
+
+/**
+ * Spawns a yt-dlp child process streaming audio directly to stdout ('-o', '-').
+ * This is fed directly into FFmpeg stdin ('pipe:0') for zero-latency, reliable playback.
+ */
+export function spawnYtDlpStream(target: string, extraArgs: string[] = []): import('child_process').ChildProcess {
+  const bin = getYtDlpBinary();
+  const args = [
+    target,
+    '-o', '-',
+    '-f', 'bestaudio/best',
+    '--no-warnings',
+    '--no-playlist',
+    ...extraArgs,
+  ];
+
+  ensureCookiesFile();
+  const cookiePath = path.resolve(process.cwd(), 'cookies.txt');
+  if (fs.existsSync(cookiePath) && fs.statSync(cookiePath).size > 0) {
+    args.push('--cookies', cookiePath);
+  }
+
+  return require('child_process').spawn(bin, args, { stdio: ['ignore', 'pipe', 'pipe'] });
+}
+
 /**
  * Returns optimized base options for yt-dlp to bypass YouTube datacenter IP rate-limits
  * and bot-detection challenges ("Sign in to confirm you're not a bot").
@@ -248,56 +347,40 @@ export function getYtDlpBaseOptions(): Record<string, any> {
 }
 
 /**
- * Executes a yt-dlp request with anti-bot bypass and automatic multi-client fallback.
+ * Executes a yt-dlp request with anti-bot bypass and fast-fail fallback.
  */
 export async function runYtDlp(target: string, options: Record<string, any> = {}): Promise<any> {
+  const isYtTarget =
+    target.includes('youtube.com') ||
+    target.includes('youtu.be') ||
+    target.startsWith('ytsearch');
+
+  // Fast-fail: If YouTube IP block is active, don't waste 30 seconds retrying YouTube
+  if (isYtTarget && isYouTubeBlocked()) {
+    throw new Error('YouTube IP bot engeli devrede (hızlı alternatif akışa yönlendiriliyor)');
+  }
+
   const ytExec = getYtDlpInstance();
   const base = getYtDlpBaseOptions();
   const merged = { ...base, ...options };
 
-  // Fallback clients in order of resilience against datacenter IP bot-challenges
-  const fallbackClients = [
-    'tv_embedded,android_creator',
-    'tv_embedded',
-    'android_creator',
-    'ios,android',
-    'mweb',
-    'web',
-  ];
-
-  let lastError: any = null;
-
-  for (let i = 0; i < fallbackClients.length; i++) {
-    const client = fallbackClients[i];
-    try {
-      const opts = {
-        ...merged,
-        extractorArgs: `youtube:player_client=${client}`,
-      };
-      return await ytExec(target, opts);
-    } catch (err: any) {
-      lastError = err;
-      const msg = String(err.message || '');
-      // If error is related to bot check or forbidden or unavailable format, continue to next client
-      if (
-        msg.includes('Sign in to confirm') ||
-        msg.includes('bot') ||
-        msg.includes('429') ||
-        msg.includes('403') ||
-        msg.includes('Requested format is not available') ||
-        msg.includes('page needs to be reloaded')
-      ) {
-        if (i < fallbackClients.length - 1) {
-          console.log(`[MediaBinaries] 🔄 YouTube bot koruması algılandı, alternatif istemci (${fallbackClients[i + 1]}) deneniyor...`);
-        }
-        continue;
+  try {
+    return await ytExec(target, merged);
+  } catch (err: any) {
+    const msg = String(err.message || '');
+    if (
+      msg.includes('Sign in to confirm') ||
+      msg.includes('bot') ||
+      msg.includes('429') ||
+      msg.includes('403')
+    ) {
+      if (isYtTarget) {
+        markYouTubeBlocked();
       }
-      // For other non-bot errors, rethrow immediately
-      throw err;
     }
+    throw err;
   }
-
-  throw lastError;
 }
+
 
 

@@ -51,7 +51,7 @@ export const RADIO_STATIONS = [
 ];
 import fs from 'fs';
 import path from 'path';
-import { runYtDlp } from '../utils/mediaBinaries.js';
+import { runYtDlp, isYouTubeBlocked } from '../utils/mediaBinaries.js';
 import { SpotifyWebAPI } from './SpotifyWebAPI.js';
 import { isSafeAudioTarget } from '../utils/security.js';
 import { SpotifyMatcher } from './SpotifyMatcher.js';
@@ -343,7 +343,34 @@ export class MusicService {
         }
         const isUrl = /^https?:\/\//i.test(trimmed);
         if (!isUrl) {
-            // Search query mode: perform actual YouTube search via yt-dlp to get the exact video
+            // Search query mode: if YouTube is blocked, search SoundCloud immediately (zero wait)
+            if (isYouTubeBlocked()) {
+                try {
+                    console.log(`[MusicService] 🔍 YouTube engelli, doğrudan SoundCloud araması yapılıyor: "${trimmed}"`);
+                    const scRes = await runYtDlp(`scsearch1:${trimmed}`, {
+                        dumpSingleJson: true,
+                        flatPlaylist: true,
+                    });
+                    const scEntry = scRes?.entries ? scRes.entries[0] : scRes;
+                    if (scEntry && (scEntry.id || scEntry.url)) {
+                        return {
+                            id: 'sc_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+                            title: scEntry.title || this.cleanSearchTitle(trimmed),
+                            artist: scEntry.uploader || 'SoundCloud Artist',
+                            url: scEntry.url || scEntry.webpage_url,
+                            durationSeconds: typeof scEntry.duration === 'number' && scEntry.duration > 0 ? scEntry.duration : 210,
+                            thumbnailUrl: scEntry.thumbnails?.[0]?.url,
+                            source: 'soundcloud',
+                            requester,
+                            addedAt: Date.now(),
+                        };
+                    }
+                }
+                catch (scErr) {
+                    console.warn(`[MusicService] SoundCloud araması uyarısı:`, scErr.message);
+                }
+            }
+            // Try YouTube search via yt-dlp
             try {
                 console.log(`[MusicService] 🔍 YouTube araması yapılıyor: "${trimmed}"`);
                 const searchRes = await runYtDlp(`ytsearch1:${trimmed}`, {
@@ -633,8 +660,32 @@ export class MusicService {
             .join(' ');
     }
     async resolveSpotifyDirectAudioStream(artist, title, album, expectedDuration = 195, isrc) {
-        const cookiePath = path.resolve(process.cwd(), 'cookies.txt');
-        const hasCookies = fs.existsSync(cookiePath);
+        const cleanArtist = artist || '';
+        const cleanTitle = title || '';
+        const searchQuery = `${cleanArtist} ${cleanTitle}`.trim();
+        // 0. Eğer YouTube IP bot koruması devredeyse, hiç YouTube'a bulaşma!
+        // Doğrudan SoundCloud üzerinden anında (0ms gecikmeyle) eşle
+        if (isYouTubeBlocked()) {
+            try {
+                console.log(`[MusicService] ⚡ YouTube IP engeli devrede, Spotify parçası doğrudan SoundCloud ile eşleniyor: "${searchQuery}"`);
+                const scRes = await runYtDlp(`scsearch1:${searchQuery}`, {
+                    dumpSingleJson: true,
+                    flatPlaylist: true,
+                });
+                const scEntry = scRes?.entries ? scRes.entries[0] : scRes;
+                if (scEntry && (scEntry.url || scEntry.id)) {
+                    const scUrl = scEntry.url || scEntry.webpage_url;
+                    if (scUrl) {
+                        console.log(`[MusicService] ☁️ Spotify parçası anında SoundCloud üzerinden eşlendi: "${scEntry.title}"`);
+                        return scUrl;
+                    }
+                }
+            }
+            catch (err) {
+                console.warn(`[MusicService] SoundCloud doğrudan eşleme uyarısı:`, err.message);
+            }
+            return `scsearch1:${searchQuery}`;
+        }
         // 1. ISRC ile doğrudan stüdyo kaydı ara (varsa)
         if (isrc) {
             try {
@@ -654,8 +705,8 @@ export class MusicService {
         }
         // 2. Yüksek hassasiyetli arama: Sanatçı + Şarkı + Albüm
         const query = album && album !== title && !title.toLowerCase().includes(album.toLowerCase())
-            ? `${artist} ${title} ${album}`
-            : `${artist} ${title}`;
+            ? `${cleanArtist} ${cleanTitle} ${album}`
+            : searchQuery;
         try {
             // Hızlı arama için flatPlaylist kullan (format decrypt beklemez, 1-2 sn içinde döner)
             const searchRes = await runYtDlp(`ytsearch3:${query}`, {
@@ -687,11 +738,11 @@ export class MusicService {
             }
         }
         catch (err) {
-            console.warn(`[MusicService] Spotify doğrudan ses akışı alma uyarısı:`, err.message);
+            console.warn(`[MusicService] Spotify doğrudan ses akışı alma uyarısı: ${err.message}. SoundCloud yedek eşlemesine geçiliyor...`);
         }
         // 3. SoundCloud Yedek Eşleme Fallback
         try {
-            const scRes = await runYtDlp(`scsearch1:${artist} ${title}`, {
+            const scRes = await runYtDlp(`scsearch1:${searchQuery}`, {
                 dumpSingleJson: true,
                 flatPlaylist: true,
             });
@@ -706,7 +757,7 @@ export class MusicService {
         }
         catch { }
         // 4. Arka plan ses motoru fallback
-        return `ytsearch1:${artist} ${title}`;
+        return `scsearch1:${searchQuery}`;
     }
     async resolvePlaylist(input, requester, maxTracks = 50, isExplicitMixCommand = false) {
         const trimmed = input.trim();
