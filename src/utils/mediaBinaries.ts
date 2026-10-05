@@ -2,7 +2,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { execSync, spawnSync } from 'child_process';
+import { execSync, spawnSync, spawn, type ChildProcess } from 'child_process';
 import ffmpegStatic from 'ffmpeg-static';
 import youtubedl from 'yt-dlp-exec';
 
@@ -310,7 +310,7 @@ export function getYtDlpBinary(): string {
  * Spawns a yt-dlp child process streaming audio directly to stdout ('-o', '-').
  * This is fed directly into FFmpeg stdin ('pipe:0') for zero-latency, reliable playback.
  */
-export function spawnYtDlpStream(target: string, extraArgs: string[] = []): import('child_process').ChildProcess {
+export function spawnYtDlpStream(target: string, extraArgs: string[] = []): ChildProcess {
   const bin = getYtDlpBinary();
   const args = [
     target,
@@ -327,7 +327,7 @@ export function spawnYtDlpStream(target: string, extraArgs: string[] = []): impo
     args.push('--cookies', cookiePath);
   }
 
-  return require('child_process').spawn(bin, args, { stdio: ['ignore', 'pipe', 'pipe'] });
+  return spawn(bin, args, { stdio: ['ignore', 'pipe', 'pipe'] });
 }
 
 /**

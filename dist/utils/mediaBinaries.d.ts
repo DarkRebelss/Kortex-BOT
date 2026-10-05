@@ -1,3 +1,4 @@
+import { type ChildProcess } from 'child_process';
 /**
  * Resolves the most appropriate FFmpeg binary path available on the current system.
  * Supports:
@@ -35,7 +36,7 @@ export declare function getYtDlpBinary(): string;
  * Spawns a yt-dlp child process streaming audio directly to stdout ('-o', '-').
  * This is fed directly into FFmpeg stdin ('pipe:0') for zero-latency, reliable playback.
  */
-export declare function spawnYtDlpStream(target: string, extraArgs?: string[]): import('child_process').ChildProcess;
+export declare function spawnYtDlpStream(target: string, extraArgs?: string[]): ChildProcess;
 /**
  * Returns optimized base options for yt-dlp to bypass YouTube datacenter IP rate-limits
  * and bot-detection challenges ("Sign in to confirm you're not a bot").

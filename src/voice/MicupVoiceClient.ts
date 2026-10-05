@@ -500,8 +500,38 @@ export class MicupVoiceClient {
           try { ffmpegProc.stdin?.end(); } catch {}
         });
 
-        ytdlProc.on('close', (code) => {
+        ytdlProc.on('close', async (code) => {
           try { ffmpegProc.stdin?.end(); } catch {}
+
+          // Eğer henüz ses başlamadan YouTube bot engeliyle kapandıysa, derhal SoundCloud ile kurtar
+          if (!session.audioStarted && session.playId === currentPlayId) {
+            if (
+              ytdlErrBuf.includes('Sign in to confirm') ||
+              ytdlErrBuf.includes('bot') ||
+              ytdlErrBuf.includes('429')
+            ) {
+              markYouTubeBlocked();
+              console.warn(`[MicupVoiceClient] 🔄 YouTube IP engeli algılandı, ses akışı anında SoundCloud'a yönlendiriliyor...`);
+              let fallbackTitle = '';
+              if (queryTarget.includes('youtube.com/watch') || queryTarget.includes('youtu.be/')) {
+                try {
+                  const oembedRes = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(queryTarget)}&format=json`, {
+                    signal: AbortSignal.timeout(4000),
+                  });
+                  if (oembedRes.ok) {
+                    const oembedData: any = await oembedRes.json();
+                    fallbackTitle = (oembedData.title || '').replace(/\([^)]*\)|\[[^\]]*\]/g, '').trim();
+                  }
+                } catch {}
+              } else if (queryTarget.startsWith('ytsearch')) {
+                fallbackTitle = queryTarget.replace(/^ytsearch\d*:\s*/i, '').trim();
+              }
+
+              if (fallbackTitle) {
+                void this.playAudio(guildId, `scsearch1:${fallbackTitle}`, onEnded, seekSeconds, false);
+              }
+            }
+          }
         });
       }
 

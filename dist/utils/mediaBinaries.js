@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import fs from 'fs';
 import path from 'path';
-import { execSync, spawnSync } from 'child_process';
+import { execSync, spawnSync, spawn } from 'child_process';
 import ffmpegStatic from 'ffmpeg-static';
 import youtubedl from 'yt-dlp-exec';
 let cachedFfmpegBinary = null;
@@ -279,7 +279,7 @@ export function spawnYtDlpStream(target, extraArgs = []) {
     if (fs.existsSync(cookiePath) && fs.statSync(cookiePath).size > 0) {
         args.push('--cookies', cookiePath);
     }
-    return require('child_process').spawn(bin, args, { stdio: ['ignore', 'pipe', 'pipe'] });
+    return spawn(bin, args, { stdio: ['ignore', 'pipe', 'pipe'] });
 }
 /**
  * Returns optimized base options for yt-dlp to bypass YouTube datacenter IP rate-limits
