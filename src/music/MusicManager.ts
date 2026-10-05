@@ -1,6 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
-
-import youtubedl from 'yt-dlp-exec';
+import { getYtDlpInstance } from '../utils/mediaBinaries.js';
 import { Player } from './Player.js';
 import { SpotifyResolver } from './SpotifyResolver.js';
 import type {
@@ -83,7 +81,8 @@ export class MusicManager {
    */
   private async resolveYouTube(url: string, requester: Snowflake): Promise<Track | null> {
     try {
-      const result: any = await youtubedl(url, {
+      const ytExec = getYtDlpInstance();
+      const result: any = await ytExec(url, {
         dumpSingleJson: true,
         noWarnings: true,
       });
@@ -112,7 +111,8 @@ export class MusicManager {
   private async searchYouTube(query: string, requester: Snowflake): Promise<Track | null> {
     try {
       const searchQuery = `ytsearch1:${query}`;
-      const result: any = await youtubedl(searchQuery, {
+      const ytExec = getYtDlpInstance();
+      const result: any = await ytExec(searchQuery, {
         dumpSingleJson: true,
         flatPlaylist: true,
         noWarnings: true,
@@ -148,7 +148,8 @@ export class MusicManager {
    */
   private async resolveSoundCloud(url: string, requester: Snowflake): Promise<Track | null> {
     try {
-      const result: any = await youtubedl(url, {
+      const ytExec = getYtDlpInstance();
+      const result: any = await ytExec(url, {
         dumpSingleJson: true,
         noWarnings: true,
       });

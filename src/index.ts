@@ -19,6 +19,7 @@ import {AntiRaidService} from './services/AntiRaidService.js';
 import {CommunityService} from './services/CommunityService.js';
 import {GiveawayService} from './services/GiveawayService.js';
 import {MicupVoiceClient} from './voice/MicupVoiceClient.js';
+import {getFfmpegBinary, getYtDlpInstance} from './utils/mediaBinaries.js';
 import {CommandHandler} from './commands/CommandHandler.js';
 import {BirthdayService} from './services/BirthdayService.js';
 import {PollService} from './services/PollService.js';
@@ -89,6 +90,15 @@ async function main(): Promise<void> {
   const voiceClient = new MicupVoiceClient();
   const musicService = new MusicService(api);
   musicService.setVoiceClient(voiceClient);
+
+  // Pre-flight check for media binaries (FFmpeg & yt-dlp)
+  try {
+    const activeFfmpeg = getFfmpegBinary();
+    getYtDlpInstance();
+    console.log(`[Media] 🎵 Müzik motoru hazırlandı (FFmpeg: ${activeFfmpeg})`);
+  } catch (err: any) {
+    console.warn(`[Media] ⚠️ Müzik motoru başlatma uyarısı: ${err.message}`);
+  }
   const birthdayService = new BirthdayService(api, db);
   const pollService = new PollService(api, db);
   const commandHandler = new CommandHandler(

@@ -51,7 +51,7 @@ export const RADIO_STATIONS = [
 ];
 import fs from 'fs';
 import path from 'path';
-import youtubedl from 'yt-dlp-exec';
+import { getYtDlpInstance } from '../utils/mediaBinaries.js';
 import { SpotifyWebAPI } from './SpotifyWebAPI.js';
 import { isSafeAudioTarget } from '../utils/security.js';
 import { SpotifyMatcher } from './SpotifyMatcher.js';
@@ -346,7 +346,8 @@ export class MusicService {
             // Search query mode: perform actual YouTube search via yt-dlp to get the exact video
             try {
                 console.log(`[MusicService] 🔍 YouTube araması yapılıyor: "${trimmed}"`);
-                const searchRes = await youtubedl(`ytsearch1:${trimmed}`, {
+                const ytdlExec = getYtDlpInstance();
+                const searchRes = await ytdlExec(`ytsearch1:${trimmed}`, {
                     dumpSingleJson: true,
                     flatPlaylist: true,
                     noWarnings: true,
@@ -616,7 +617,8 @@ export class MusicService {
         // 1. ISRC ile doğrudan stüdyo kaydı ara (varsa)
         if (isrc) {
             try {
-                const isrcResults = await youtubedl(`ytsearch1:${isrc}`, {
+                const ytdlExec = getYtDlpInstance();
+                const isrcResults = await ytdlExec(`ytsearch1:${isrc}`, {
                     dumpSingleJson: true,
                     flatPlaylist: true,
                     noWarnings: true,
@@ -638,7 +640,8 @@ export class MusicService {
             : `${artist} ${title}`;
         try {
             // Hızlı arama için flatPlaylist kullan (format decrypt beklemez, 1-2 sn içinde döner)
-            const searchRes = await youtubedl(`ytsearch3:${query}`, {
+            const ytdlExec = getYtDlpInstance();
+            const searchRes = await ytdlExec(`ytsearch3:${query}`, {
                 dumpSingleJson: true,
                 flatPlaylist: true,
                 noWarnings: true,
@@ -740,7 +743,8 @@ export class MusicService {
                     : `${targetUrl} mix`;
                 targetUrl = `ytsearch${maxTracks}:${query}`;
             }
-            const res = await youtubedl(targetUrl, {
+            const ytdlExec = getYtDlpInstance();
+            const res = await ytdlExec(targetUrl, {
                 dumpSingleJson: true,
                 flatPlaylist: true,
                 playlistEnd: maxTracks,

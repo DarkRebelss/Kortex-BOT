@@ -2,8 +2,7 @@
 import fs from 'fs';
 import path from 'path';
 import { spawn } from 'child_process';
-import ffmpegStatic from 'ffmpeg-static';
-import youtubedl from 'yt-dlp-exec';
+import { getFfmpegBinary, getYtDlpInstance } from '../utils/mediaBinaries.js';
 import { AudioFrame, AudioSource, LocalAudioTrack, Room, RoomEvent, TrackPublishOptions, TrackSource, } from '@livekit/rtc-node';
 import { AudioEncoding } from '@livekit/rtc-ffi-bindings';
 import { isSafeAudioTarget } from '../utils/security.js';
@@ -230,7 +229,7 @@ export class MicupVoiceClient {
         session.ffmpegFinished = false;
         session.audioStarted = false;
         session.onEndedCallback = onEnded;
-        const ffmpegBinary = (typeof ffmpegStatic === 'string' ? ffmpegStatic : ffmpegStatic?.default) || 'ffmpeg';
+        const ffmpegBinary = getFfmpegBinary();
         try {
             let playbackUrl = inputUrl;
             // Handle YouTube Mix playlists, Spotify, and search queries
@@ -304,7 +303,8 @@ export class MicupVoiceClient {
                 try {
                     const cookiePath = path.resolve(process.cwd(), 'cookies.txt');
                     const hasCookies = fs.existsSync(cookiePath);
-                    const ytdlData = await youtubedl(queryTarget, {
+                    const ytExec = getYtDlpInstance();
+                    const ytdlData = await ytExec(queryTarget, {
                         dumpSingleJson: true,
                         noWarnings: true,
                         noPlaylist: true,
@@ -322,22 +322,6 @@ export class MicupVoiceClient {
                             playbackUrl = best.url;
                         }
                     }
-                    // ⚠️ KORUMA: Eğer hâlâ geçerli bir medya URL'i elde edemediysek FFmpeg'i çalıştırma
-                    if (!playbackUrl || /^ytsearch\d*:/i.test(playbackUrl) || !/^https?:\/\//i.test(playbackUrl)) {
-                        const errMsg = `Ses akışı çözümlemesi başarısız: Geçerli bir medya akış URL'i elde edilemedi.`;
-                        console.error(`[MicupVoiceClient] ❌ ${errMsg}`);
-                        if (typeof onEnded === 'function') {
-                            try {
-                                onEnded();
-                            }
-                            catch { }
-                        }
-                        this.setCachedStreamUrl(inputUrl, ''); // Önbelleğe BOZUK kayıt etmesin
-                        this.setCachedStreamUrl(queryTarget, '');
-                        if (!shouldHotSwap)
-                            this.stopAudio(guildId);
-                        return undefined;
-                    }
                     // Cache resolved URL for 4 hours
                     if (playbackUrl && playbackUrl !== inputUrl) {
                         this.setCachedStreamUrl(inputUrl, playbackUrl);
@@ -347,12 +331,18 @@ export class MicupVoiceClient {
                     }
                 }
                 catch (err) {
-                    console.warn(`[MicupVoiceClient] yt-dlp çözme uyarısı (${err.message}). Doğrudan deneniyor.`);
+                    console.warn(`[MicupVoiceClient] yt-dlp ses akışı çözme uyarısı (${err.message}).`);
                 }
             }
-            // ⚠️ SON KONTROL: HTTP(S) URL olmadan FFmpeg'i başlatma
-            if (!/^https?:\/\//i.test(playbackUrl)) {
-                const errMsg = `Oynatma için geçersiz medya URL'i: "${String(playbackUrl).slice(0, 100)}"`;
+            // ⚠️ SON KONTROL: Doğrudan ses akışı doğrulaması
+            // Eğer YouTube, Spotify veya arama URL'i çözümlenemeyip hâlâ web sayfası URL'i olarak kaldıysa FFmpeg'e verme
+            const isUnresolvedWebUrl = playbackUrl.includes('youtube.com/watch') ||
+                playbackUrl.includes('youtu.be/') ||
+                playbackUrl.includes('youtube.com/results') ||
+                playbackUrl.includes('open.spotify.com') ||
+                playbackUrl.startsWith('ytsearch');
+            if (!/^https?:\/\//i.test(playbackUrl) || isUnresolvedWebUrl) {
+                const errMsg = `Ses akışı çözümlemesi başarısız: "${String(playbackUrl).slice(0, 80)}" doğrudan ses akışına çevrilemedi. (yt-dlp veya FFmpeg ikili dosyası eksik olabilir)`;
                 console.error(`[MicupVoiceClient] ❌ ${errMsg}`);
                 if (typeof onEnded === 'function') {
                     try {
@@ -360,6 +350,8 @@ export class MicupVoiceClient {
                     }
                     catch { }
                 }
+                this.setCachedStreamUrl(inputUrl, '');
+                this.setCachedStreamUrl(queryTarget, '');
                 if (!shouldHotSwap)
                     this.stopAudio(guildId);
                 return undefined;
@@ -440,7 +432,21 @@ export class MicupVoiceClient {
                 session.ffmpegFinished = true;
             });
             ffmpegProc.on('error', (err) => {
-                console.error(`[MicupVoiceClient] FFmpeg çalıştırma hatası:`, err.message);
+                console.error(`[MicupVoiceClient] ❌ FFmpeg çalıştırma hatası:`, err.message);
+                if (err.code === 'ENOENT') {
+                    console.error(`[MicupVoiceClient] 💡 ÇÖZÜM: FFmpeg ikili dosyası bulunamadı ("${ffmpegBinary}").\n` +
+                        `Sunucunuzda (Pterodactyl/Linux) 'ffmpeg' sistem paketinin kurulu olduğundan emin olun veya bot dizininde:\n` +
+                        `"node node_modules/ffmpeg-static/install.js" komutunu çalıştırın.`);
+                }
+                if (session.playId === currentPlayId) {
+                    session.ffmpegFinished = true;
+                    if (typeof session.onEndedCallback === 'function') {
+                        try {
+                            session.onEndedCallback();
+                        }
+                        catch { }
+                    }
+                }
             });
             return playbackUrl;
         }

@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
-import youtubedl from 'yt-dlp-exec';
+import { getYtDlpInstance } from '../utils/mediaBinaries.js';
 export class SpotifyMatcher {
     SPOTIFY_API_BASE = 'https://api.spotify.com/v1';
     OAUTH_TOKEN_URL = 'https://accounts.spotify.com/api/token';
@@ -291,7 +290,8 @@ export class SpotifyMatcher {
     async searchYouTubeByISRC(isrc) {
         try {
             const query = `ytsearch1:${isrc}`;
-            const result = await youtubedl(query, {
+            const ytExec = getYtDlpInstance();
+            const result = await ytExec(query, {
                 dumpSingleJson: true,
                 flatPlaylist: true,
                 noWarnings: true,
@@ -316,7 +316,8 @@ export class SpotifyMatcher {
     async searchYouTube(query, maxResults = 5) {
         try {
             const searchQuery = `ytsearch${maxResults}:${query}`;
-            const result = await youtubedl(searchQuery, {
+            const ytExec = getYtDlpInstance();
+            const result = await ytExec(searchQuery, {
                 dumpSingleJson: true,
                 flatPlaylist: true,
                 noWarnings: true,

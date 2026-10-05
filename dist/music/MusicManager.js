@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
-import youtubedl from 'yt-dlp-exec';
+import { getYtDlpInstance } from '../utils/mediaBinaries.js';
 import { Player } from './Player.js';
 import { SpotifyResolver } from './SpotifyResolver.js';
 import { MusicEvent } from './types.js';
@@ -62,7 +61,8 @@ export class MusicManager {
      */
     async resolveYouTube(url, requester) {
         try {
-            const result = await youtubedl(url, {
+            const ytExec = getYtDlpInstance();
+            const result = await ytExec(url, {
                 dumpSingleJson: true,
                 noWarnings: true,
             });
@@ -90,7 +90,8 @@ export class MusicManager {
     async searchYouTube(query, requester) {
         try {
             const searchQuery = `ytsearch1:${query}`;
-            const result = await youtubedl(searchQuery, {
+            const ytExec = getYtDlpInstance();
+            const result = await ytExec(searchQuery, {
                 dumpSingleJson: true,
                 flatPlaylist: true,
                 noWarnings: true,
@@ -123,7 +124,8 @@ export class MusicManager {
      */
     async resolveSoundCloud(url, requester) {
         try {
-            const result = await youtubedl(url, {
+            const ytExec = getYtDlpInstance();
+            const result = await ytExec(url, {
                 dumpSingleJson: true,
                 noWarnings: true,
             });

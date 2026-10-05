@@ -12,7 +12,9 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "tsx watch src/index.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "setup:binaries": "node node_modules/ffmpeg-static/install.js && node node_modules/yt-dlp-exec/scripts/postinstall.js",
+    "postinstall": "npm run setup:binaries || true"
   },
   "keywords": [],
   "author": "",

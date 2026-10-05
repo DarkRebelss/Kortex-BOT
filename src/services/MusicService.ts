@@ -70,7 +70,7 @@ export const RADIO_STATIONS: RadioStation[] = [
 
 import fs from 'fs';
 import path from 'path';
-import youtubedl from 'yt-dlp-exec';
+import { getYtDlpInstance } from '../utils/mediaBinaries.js';
 import playdl from 'play-dl';
 import { SpotifyWebAPI } from './SpotifyWebAPI.js';
 import { MicupVoiceClient } from '../voice/MicupVoiceClient.js';
@@ -418,7 +418,8 @@ export class MusicService {
       // Search query mode: perform actual YouTube search via yt-dlp to get the exact video
       try {
         console.log(`[MusicService] 🔍 YouTube araması yapılıyor: "${trimmed}"`);
-        const searchRes: any = await youtubedl(`ytsearch1:${trimmed}`, {
+        const ytdlExec = getYtDlpInstance();
+        const searchRes: any = await ytdlExec(`ytsearch1:${trimmed}`, {
           dumpSingleJson: true,
           flatPlaylist: true,
           noWarnings: true,
@@ -709,7 +710,8 @@ export class MusicService {
     // 1. ISRC ile doğrudan stüdyo kaydı ara (varsa)
     if (isrc) {
       try {
-        const isrcResults: any = await youtubedl(`ytsearch1:${isrc}`, {
+        const ytdlExec = getYtDlpInstance();
+        const isrcResults: any = await ytdlExec(`ytsearch1:${isrc}`, {
           dumpSingleJson: true,
           flatPlaylist: true,
           noWarnings: true,
@@ -732,7 +734,8 @@ export class MusicService {
 
     try {
       // Hızlı arama için flatPlaylist kullan (format decrypt beklemez, 1-2 sn içinde döner)
-      const searchRes: any = await youtubedl(`ytsearch3:${query}`, {
+      const ytdlExec = getYtDlpInstance();
+      const searchRes: any = await ytdlExec(`ytsearch3:${query}`, {
         dumpSingleJson: true,
         flatPlaylist: true,
         noWarnings: true,
@@ -858,7 +861,8 @@ export class MusicService {
         targetUrl = `ytsearch${maxTracks}:${query}`;
       }
 
-      const res: any = await youtubedl(targetUrl, {
+      const ytdlExec = getYtDlpInstance();
+      const res: any = await ytdlExec(targetUrl, {
         dumpSingleJson: true,
         flatPlaylist: true,
         playlistEnd: maxTracks,
