@@ -242,40 +242,62 @@ export function getYtDlpBaseOptions(): Record<string, any> {
 
   return {
     noWarnings: true,
-    extractorArgs: 'youtube:player_client=ios,android,mweb',
+    extractorArgs: 'youtube:player_client=tv_embedded,android_creator',
     ...(hasCookies ? { cookies: cookiePath } : {}),
   };
 }
 
 /**
- * Executes a yt-dlp request with anti-bot bypass and automatic mobile client fallback.
+ * Executes a yt-dlp request with anti-bot bypass and automatic multi-client fallback.
  */
 export async function runYtDlp(target: string, options: Record<string, any> = {}): Promise<any> {
   const ytExec = getYtDlpInstance();
   const base = getYtDlpBaseOptions();
   const merged = { ...base, ...options };
 
-  try {
-    return await ytExec(target, merged);
-  } catch (err: any) {
-    const msg = String(err.message || '');
-    // If blocked by YouTube bot challenge on datacenter IP, retry with strict mobile clients (ios,android)
-    if (msg.includes('Sign in to confirm') || msg.includes('bot') || msg.includes('429')) {
-      console.log(`[MediaBinaries] 🔄 YouTube bot koruması atlatılıyor, android istemcisi ile tekrar deneniyor...`);
-      try {
-        return await ytExec(target, {
-          ...merged,
-          extractorArgs: 'youtube:player_client=android',
-        });
-      } catch (retryErr: any) {
-        console.log(`[MediaBinaries] 🔄 Alternatif ios istemcisi deneniyor...`);
-        return await ytExec(target, {
-          ...merged,
-          extractorArgs: 'youtube:player_client=ios',
-        });
+  // Fallback clients in order of resilience against datacenter IP bot-challenges
+  const fallbackClients = [
+    'tv_embedded,android_creator',
+    'tv_embedded',
+    'android_creator',
+    'ios,android',
+    'mweb',
+    'web',
+  ];
+
+  let lastError: any = null;
+
+  for (let i = 0; i < fallbackClients.length; i++) {
+    const client = fallbackClients[i];
+    try {
+      const opts = {
+        ...merged,
+        extractorArgs: `youtube:player_client=${client}`,
+      };
+      return await ytExec(target, opts);
+    } catch (err: any) {
+      lastError = err;
+      const msg = String(err.message || '');
+      // If error is related to bot check or forbidden or unavailable format, continue to next client
+      if (
+        msg.includes('Sign in to confirm') ||
+        msg.includes('bot') ||
+        msg.includes('429') ||
+        msg.includes('403') ||
+        msg.includes('Requested format is not available') ||
+        msg.includes('page needs to be reloaded')
+      ) {
+        if (i < fallbackClients.length - 1) {
+          console.log(`[MediaBinaries] 🔄 YouTube bot koruması algılandı, alternatif istemci (${fallbackClients[i + 1]}) deneniyor...`);
+        }
+        continue;
       }
+      // For other non-bot errors, rethrow immediately
+      throw err;
     }
-    throw err;
   }
+
+  throw lastError;
 }
+
 

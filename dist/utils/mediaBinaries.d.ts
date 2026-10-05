@@ -23,6 +23,6 @@ export declare function ensureCookiesFile(): void;
  */
 export declare function getYtDlpBaseOptions(): Record<string, any>;
 /**
- * Executes a yt-dlp request with anti-bot bypass and automatic mobile client fallback.
+ * Executes a yt-dlp request with anti-bot bypass and automatic multi-client fallback.
  */
 export declare function runYtDlp(target: string, options?: Record<string, any>): Promise<any>;
