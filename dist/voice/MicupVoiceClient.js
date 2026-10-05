@@ -325,6 +325,53 @@ export class MicupVoiceClient {
                 }
                 catch (err) {
                     console.warn(`[MicupVoiceClient] yt-dlp ses akışı çözme uyarısı (${err.message}).`);
+                    // 🛡️ Otomatik Yedek Akış Kurtarma (SoundCloud Fallback):
+                    // Eğer YouTube bot koruması veya veri merkezi IP engeli sebebiyle başarısız olduysa
+                    try {
+                        let fallbackSearchQuery = '';
+                        if (queryTarget.includes('youtube.com/watch') || queryTarget.includes('youtu.be/')) {
+                            try {
+                                const oembedRes = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(queryTarget)}&format=json`, {
+                                    signal: AbortSignal.timeout(4000),
+                                });
+                                if (oembedRes.ok) {
+                                    const oembedData = await oembedRes.json();
+                                    const rawTitle = oembedData.title || '';
+                                    fallbackSearchQuery = rawTitle.replace(/\([^)]*\)|\[[^\]]*\]/g, '').trim();
+                                }
+                            }
+                            catch { }
+                        }
+                        else if (queryTarget.startsWith('ytsearch')) {
+                            fallbackSearchQuery = queryTarget.replace(/^ytsearch\d*:\s*/i, '').trim();
+                        }
+                        if (fallbackSearchQuery) {
+                            console.log(`[MicupVoiceClient] 🔄 YouTube IP engeli algılandı, alternatif SoundCloud akışı aranıyor: "${fallbackSearchQuery}"...`);
+                            const scSearchRes = await runYtDlp(`scsearch1:${fallbackSearchQuery}`, {
+                                dumpSingleJson: true,
+                                flatPlaylist: true,
+                            });
+                            const scCandidate = scSearchRes?.entries ? scSearchRes.entries[0] : scSearchRes;
+                            const scUrl = scCandidate?.url || scCandidate?.webpage_url;
+                            if (scUrl) {
+                                console.log(`[MicupVoiceClient] ☁️ SoundCloud eşleşmesi bulundu: "${scCandidate.title || fallbackSearchQuery}"`);
+                                const scStreamData = await runYtDlp(scUrl, {
+                                    dumpSingleJson: true,
+                                    format: 'bestaudio/best',
+                                });
+                                const scStreamUrl = scStreamData?.url || (Array.isArray(scStreamData?.formats) && scStreamData.formats.pop()?.url);
+                                if (scStreamUrl) {
+                                    playbackUrl = scStreamUrl;
+                                    console.log(`[MicupVoiceClient] ✅ Yedek ses akışı SoundCloud üzerinden başarıyla temin edildi!`);
+                                    this.setCachedStreamUrl(inputUrl, playbackUrl);
+                                    this.setCachedStreamUrl(queryTarget, playbackUrl);
+                                }
+                            }
+                        }
+                    }
+                    catch (fbErr) {
+                        console.warn(`[MicupVoiceClient] Yedek SoundCloud akış denemesi başarısız:`, fbErr.message);
+                    }
                 }
             }
             // ⚠️ SON KONTROL: Doğrudan ses akışı doğrulaması

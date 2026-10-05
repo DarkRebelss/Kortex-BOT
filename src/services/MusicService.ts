@@ -440,7 +440,29 @@ export class MusicService {
           };
         }
       } catch (err: any) {
-        console.warn(`[MusicService] ytsearch1 arama uyarısı (${err.message}).`);
+        console.warn(`[MusicService] YouTube araması başarısız (${err.message}). SoundCloud deneniyor...`);
+        try {
+          const scRes: any = await runYtDlp(`scsearch1:${trimmed}`, {
+            dumpSingleJson: true,
+            flatPlaylist: true,
+          });
+          const scEntry = scRes?.entries ? scRes.entries[0] : scRes;
+          if (scEntry && (scEntry.id || scEntry.url)) {
+            return {
+              id: 'sc_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+              title: scEntry.title || this.cleanSearchTitle(trimmed),
+              artist: scEntry.uploader || 'SoundCloud Artist',
+              url: scEntry.url || scEntry.webpage_url,
+              durationSeconds: typeof scEntry.duration === 'number' && scEntry.duration > 0 ? scEntry.duration : 210,
+              thumbnailUrl: scEntry.thumbnails?.[0]?.url,
+              source: 'soundcloud',
+              requester,
+              addedAt: Date.now(),
+            };
+          }
+        } catch (scErr: any) {
+          console.warn(`[MusicService] SoundCloud araması da başarısız (${scErr.message}).`);
+        }
       }
 
       return {
@@ -765,7 +787,23 @@ export class MusicService {
       console.warn(`[MusicService] Spotify doğrudan ses akışı alma uyarısı:`, err.message);
     }
 
-    // 3. Arka plan ses motoru fallback
+    // 3. SoundCloud Yedek Eşleme Fallback
+    try {
+      const scRes: any = await runYtDlp(`scsearch1:${artist} ${title}`, {
+        dumpSingleJson: true,
+        flatPlaylist: true,
+      });
+      const scEntry = scRes?.entries ? scRes.entries[0] : scRes;
+      if (scEntry && (scEntry.url || scEntry.id)) {
+        const scUrl = scEntry.url || scEntry.webpage_url;
+        if (scUrl) {
+          console.log(`[MusicService] ☁️ Spotify parçası SoundCloud üzerinden yedek olarak eşlendi: "${scEntry.title}"`);
+          return scUrl;
+        }
+      }
+    } catch {}
+
+    // 4. Arka plan ses motoru fallback
     return `ytsearch1:${artist} ${title}`;
   }
 
