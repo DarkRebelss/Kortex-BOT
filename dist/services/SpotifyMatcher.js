@@ -1,4 +1,4 @@
-import { getYtDlpInstance } from '../utils/mediaBinaries.js';
+import { runYtDlp } from '../utils/mediaBinaries.js';
 export class SpotifyMatcher {
     SPOTIFY_API_BASE = 'https://api.spotify.com/v1';
     OAUTH_TOKEN_URL = 'https://accounts.spotify.com/api/token';
@@ -290,11 +290,9 @@ export class SpotifyMatcher {
     async searchYouTubeByISRC(isrc) {
         try {
             const query = `ytsearch1:${isrc}`;
-            const ytExec = getYtDlpInstance();
-            const result = await ytExec(query, {
+            const result = await runYtDlp(query, {
                 dumpSingleJson: true,
                 flatPlaylist: true,
-                noWarnings: true,
             });
             const entry = result?.entries ? result.entries[0] : result;
             if (entry && (entry.id || entry.url)) {
@@ -316,11 +314,9 @@ export class SpotifyMatcher {
     async searchYouTube(query, maxResults = 5) {
         try {
             const searchQuery = `ytsearch${maxResults}:${query}`;
-            const ytExec = getYtDlpInstance();
-            const result = await ytExec(searchQuery, {
+            const result = await runYtDlp(searchQuery, {
                 dumpSingleJson: true,
                 flatPlaylist: true,
-                noWarnings: true,
             });
             const entries = result?.entries || [];
             if (entries.length === 0)

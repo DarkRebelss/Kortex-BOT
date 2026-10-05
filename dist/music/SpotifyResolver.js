@@ -1,4 +1,4 @@
-import { getYtDlpInstance } from '../utils/mediaBinaries.js';
+import { runYtDlp } from '../utils/mediaBinaries.js';
 /**
  * Spotify linklerini metadata'ya ve YouTube'a eşleştiren servis
  */
@@ -289,11 +289,9 @@ export class SpotifyResolver {
     async searchYouTubeByISRC(isrc) {
         try {
             const query = `ytsearch1:${isrc}`;
-            const ytExec = getYtDlpInstance();
-            const result = await ytExec(query, {
+            const result = await runYtDlp(query, {
                 dumpSingleJson: true,
                 flatPlaylist: true,
-                noWarnings: true,
             });
             const entry = result?.entries ? result.entries[0] : result;
             if (entry && (entry.id || entry.url)) {
@@ -315,11 +313,9 @@ export class SpotifyResolver {
     async searchYouTube(query, maxResults = 5) {
         try {
             const searchQuery = `ytsearch${maxResults}:${query}`;
-            const ytExec = getYtDlpInstance();
-            const result = await ytExec(searchQuery, {
+            const result = await runYtDlp(searchQuery, {
                 dumpSingleJson: true,
                 flatPlaylist: true,
-                noWarnings: true,
             });
             const entries = result?.entries || [];
             if (entries.length === 0)

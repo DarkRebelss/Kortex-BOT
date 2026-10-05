@@ -203,3 +203,79 @@ export function getYtDlpInstance(): any {
   cachedYtDlpInstance = youtubedl;
   return youtubedl;
 }
+
+/**
+ * Automatically prepares cookies.txt if provided via environment variable (YOUTUBE_COOKIE or YOUTUBE_COOKIES).
+ */
+export function ensureCookiesFile(): void {
+  const rawCookie = process.env.YOUTUBE_COOKIE || process.env.YOUTUBE_COOKIES;
+  const cookiePath = path.resolve(process.cwd(), 'cookies.txt');
+
+  if (rawCookie && (!fs.existsSync(cookiePath) || fs.statSync(cookiePath).size === 0)) {
+    try {
+      let content = rawCookie;
+      // If base64-encoded, decode it
+      if (!rawCookie.includes('# Netscape') && !rawCookie.includes('\t') && rawCookie.length > 50) {
+        try {
+          const decoded = Buffer.from(rawCookie, 'base64').toString('utf8');
+          if (decoded.includes('# Netscape') || decoded.includes('\t')) {
+            content = decoded;
+          }
+        } catch {}
+      }
+      fs.writeFileSync(cookiePath, content.trim() + '\n', 'utf8');
+      console.log(`[MediaBinaries] 🍪 Ortam değişkeninden cookies.txt dosyası başarıyla oluşturuldu.`);
+    } catch (err: any) {
+      console.warn(`[MediaBinaries] cookies.txt oluşturma hatası: ${err.message}`);
+    }
+  }
+}
+
+/**
+ * Returns optimized base options for yt-dlp to bypass YouTube datacenter IP rate-limits
+ * and bot-detection challenges ("Sign in to confirm you're not a bot").
+ */
+export function getYtDlpBaseOptions(): Record<string, any> {
+  ensureCookiesFile();
+  const cookiePath = path.resolve(process.cwd(), 'cookies.txt');
+  const hasCookies = fs.existsSync(cookiePath) && fs.statSync(cookiePath).size > 0;
+
+  return {
+    noWarnings: true,
+    extractorArgs: 'youtube:player_client=ios,android,mweb',
+    ...(hasCookies ? { cookies: cookiePath } : {}),
+  };
+}
+
+/**
+ * Executes a yt-dlp request with anti-bot bypass and automatic mobile client fallback.
+ */
+export async function runYtDlp(target: string, options: Record<string, any> = {}): Promise<any> {
+  const ytExec = getYtDlpInstance();
+  const base = getYtDlpBaseOptions();
+  const merged = { ...base, ...options };
+
+  try {
+    return await ytExec(target, merged);
+  } catch (err: any) {
+    const msg = String(err.message || '');
+    // If blocked by YouTube bot challenge on datacenter IP, retry with strict mobile clients (ios,android)
+    if (msg.includes('Sign in to confirm') || msg.includes('bot') || msg.includes('429')) {
+      console.log(`[MediaBinaries] 🔄 YouTube bot koruması atlatılıyor, android istemcisi ile tekrar deneniyor...`);
+      try {
+        return await ytExec(target, {
+          ...merged,
+          extractorArgs: 'youtube:player_client=android',
+        });
+      } catch (retryErr: any) {
+        console.log(`[MediaBinaries] 🔄 Alternatif ios istemcisi deneniyor...`);
+        return await ytExec(target, {
+          ...merged,
+          extractorArgs: 'youtube:player_client=ios',
+        });
+      }
+    }
+    throw err;
+  }
+}
+

@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import fs from 'fs';
-import path from 'path';
 import { spawn } from 'child_process';
-import { getFfmpegBinary, getYtDlpInstance } from '../utils/mediaBinaries.js';
+import { getFfmpegBinary, runYtDlp } from '../utils/mediaBinaries.js';
 import { AudioFrame, AudioSource, LocalAudioTrack, Room, RoomEvent, TrackPublishOptions, TrackSource, } from '@livekit/rtc-node';
 import { AudioEncoding } from '@livekit/rtc-ffi-bindings';
 import { isSafeAudioTarget } from '../utils/security.js';
@@ -301,15 +299,10 @@ export class MicupVoiceClient {
                 const displayTarget = queryTarget.startsWith('ytsearch1:') ? 'Arka Plan Doğrudan Ses Motoru' : queryTarget.slice(0, 80);
                 console.log(`[MicupVoiceClient] Medya akış URL'si çözülüyor: ${displayTarget}`);
                 try {
-                    const cookiePath = path.resolve(process.cwd(), 'cookies.txt');
-                    const hasCookies = fs.existsSync(cookiePath);
-                    const ytExec = getYtDlpInstance();
-                    const ytdlData = await ytExec(queryTarget, {
+                    const ytdlData = await runYtDlp(queryTarget, {
                         dumpSingleJson: true,
-                        noWarnings: true,
                         noPlaylist: true,
                         format: 'bestaudio/best',
-                        ...(hasCookies ? { cookies: cookiePath } : {}),
                     });
                     const directCandidate = ytdlData?.url || (Array.isArray(ytdlData?.entries) && ytdlData.entries[0]?.url);
                     if (directCandidate) {

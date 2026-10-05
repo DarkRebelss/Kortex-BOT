@@ -1,4 +1,4 @@
-import { getYtDlpInstance } from '../utils/mediaBinaries.js';
+import { getYtDlpInstance, runYtDlp } from '../utils/mediaBinaries.js';
 import { Player } from './Player.js';
 import { SpotifyResolver } from './SpotifyResolver.js';
 import type {
@@ -81,10 +81,8 @@ export class MusicManager {
    */
   private async resolveYouTube(url: string, requester: Snowflake): Promise<Track | null> {
     try {
-      const ytExec = getYtDlpInstance();
-      const result: any = await ytExec(url, {
+      const result: any = await runYtDlp(url, {
         dumpSingleJson: true,
-        noWarnings: true,
       });
 
       return {
@@ -111,11 +109,9 @@ export class MusicManager {
   private async searchYouTube(query: string, requester: Snowflake): Promise<Track | null> {
     try {
       const searchQuery = `ytsearch1:${query}`;
-      const ytExec = getYtDlpInstance();
-      const result: any = await ytExec(searchQuery, {
+      const result: any = await runYtDlp(searchQuery, {
         dumpSingleJson: true,
         flatPlaylist: true,
-        noWarnings: true,
       });
 
       const entry = result?.entries ? result.entries[0] : result;
@@ -148,10 +144,8 @@ export class MusicManager {
    */
   private async resolveSoundCloud(url: string, requester: Snowflake): Promise<Track | null> {
     try {
-      const ytExec = getYtDlpInstance();
-      const result: any = await ytExec(url, {
+      const result: any = await runYtDlp(url, {
         dumpSingleJson: true,
-        noWarnings: true,
       });
 
       return {

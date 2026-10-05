@@ -3,7 +3,7 @@
 import fs from 'fs';
 import path from 'path';
 import {spawn, type ChildProcess} from 'child_process';
-import { getFfmpegBinary, getYtDlpInstance } from '../utils/mediaBinaries.js';
+import { getFfmpegBinary, getYtDlpInstance, runYtDlp } from '../utils/mediaBinaries.js';
 import {
   AudioFrame,
   AudioSource,
@@ -382,16 +382,10 @@ export class MicupVoiceClient {
         const displayTarget = queryTarget.startsWith('ytsearch1:') ? 'Arka Plan Doğrudan Ses Motoru' : queryTarget.slice(0, 80);
         console.log(`[MicupVoiceClient] Medya akış URL'si çözülüyor: ${displayTarget}`);
         try {
-          const cookiePath = path.resolve(process.cwd(), 'cookies.txt');
-          const hasCookies = fs.existsSync(cookiePath);
-
-          const ytExec = getYtDlpInstance();
-          const ytdlData: any = await ytExec(queryTarget, {
+          const ytdlData: any = await runYtDlp(queryTarget, {
             dumpSingleJson: true,
-            noWarnings: true,
             noPlaylist: true,
             format: 'bestaudio/best',
-            ...(hasCookies ? { cookies: cookiePath } : {}),
           });
 
           const directCandidate = ytdlData?.url || (Array.isArray(ytdlData?.entries) && ytdlData.entries[0]?.url);

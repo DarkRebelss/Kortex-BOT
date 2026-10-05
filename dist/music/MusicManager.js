@@ -1,4 +1,4 @@
-import { getYtDlpInstance } from '../utils/mediaBinaries.js';
+import { runYtDlp } from '../utils/mediaBinaries.js';
 import { Player } from './Player.js';
 import { SpotifyResolver } from './SpotifyResolver.js';
 import { MusicEvent } from './types.js';
@@ -61,10 +61,8 @@ export class MusicManager {
      */
     async resolveYouTube(url, requester) {
         try {
-            const ytExec = getYtDlpInstance();
-            const result = await ytExec(url, {
+            const result = await runYtDlp(url, {
                 dumpSingleJson: true,
-                noWarnings: true,
             });
             return {
                 id: `yt_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
@@ -90,11 +88,9 @@ export class MusicManager {
     async searchYouTube(query, requester) {
         try {
             const searchQuery = `ytsearch1:${query}`;
-            const ytExec = getYtDlpInstance();
-            const result = await ytExec(searchQuery, {
+            const result = await runYtDlp(searchQuery, {
                 dumpSingleJson: true,
                 flatPlaylist: true,
-                noWarnings: true,
             });
             const entry = result?.entries ? result.entries[0] : result;
             if (!entry) {
@@ -124,10 +120,8 @@ export class MusicManager {
      */
     async resolveSoundCloud(url, requester) {
         try {
-            const ytExec = getYtDlpInstance();
-            const result = await ytExec(url, {
+            const result = await runYtDlp(url, {
                 dumpSingleJson: true,
-                noWarnings: true,
             });
             return {
                 id: `sc_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,

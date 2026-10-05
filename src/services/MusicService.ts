@@ -70,7 +70,7 @@ export const RADIO_STATIONS: RadioStation[] = [
 
 import fs from 'fs';
 import path from 'path';
-import { getYtDlpInstance } from '../utils/mediaBinaries.js';
+import { getYtDlpInstance, runYtDlp } from '../utils/mediaBinaries.js';
 import playdl from 'play-dl';
 import { SpotifyWebAPI } from './SpotifyWebAPI.js';
 import { MicupVoiceClient } from '../voice/MicupVoiceClient.js';
@@ -418,11 +418,9 @@ export class MusicService {
       // Search query mode: perform actual YouTube search via yt-dlp to get the exact video
       try {
         console.log(`[MusicService] 🔍 YouTube araması yapılıyor: "${trimmed}"`);
-        const ytdlExec = getYtDlpInstance();
-        const searchRes: any = await ytdlExec(`ytsearch1:${trimmed}`, {
+        const searchRes: any = await runYtDlp(`ytsearch1:${trimmed}`, {
           dumpSingleJson: true,
           flatPlaylist: true,
-          noWarnings: true,
         });
 
         const entry = searchRes?.entries ? searchRes.entries[0] : searchRes;
@@ -710,12 +708,9 @@ export class MusicService {
     // 1. ISRC ile doğrudan stüdyo kaydı ara (varsa)
     if (isrc) {
       try {
-        const ytdlExec = getYtDlpInstance();
-        const isrcResults: any = await ytdlExec(`ytsearch1:${isrc}`, {
+        const isrcResults: any = await runYtDlp(`ytsearch1:${isrc}`, {
           dumpSingleJson: true,
           flatPlaylist: true,
-          noWarnings: true,
-          ...(hasCookies ? { cookies: cookiePath } : {}),
         });
         const entries = Array.isArray(isrcResults?.entries) ? isrcResults.entries : [isrcResults];
         const bestIsrc = entries[0];
@@ -734,12 +729,9 @@ export class MusicService {
 
     try {
       // Hızlı arama için flatPlaylist kullan (format decrypt beklemez, 1-2 sn içinde döner)
-      const ytdlExec = getYtDlpInstance();
-      const searchRes: any = await ytdlExec(`ytsearch3:${query}`, {
+      const searchRes: any = await runYtDlp(`ytsearch3:${query}`, {
         dumpSingleJson: true,
         flatPlaylist: true,
-        noWarnings: true,
-        ...(hasCookies ? { cookies: cookiePath } : {}),
       });
 
       const entries = Array.isArray(searchRes?.entries) ? searchRes.entries : [searchRes];
@@ -861,14 +853,11 @@ export class MusicService {
         targetUrl = `ytsearch${maxTracks}:${query}`;
       }
 
-      const ytdlExec = getYtDlpInstance();
-      const res: any = await ytdlExec(targetUrl, {
+      const res: any = await runYtDlp(targetUrl, {
         dumpSingleJson: true,
         flatPlaylist: true,
         playlistEnd: maxTracks,
-        noWarnings: true,
         yesPlaylist: true,
-        ...(hasCookies ? { cookies: cookiePath } : {}),
       });
 
       const entries = Array.isArray(res?.entries) ? res.entries : [];

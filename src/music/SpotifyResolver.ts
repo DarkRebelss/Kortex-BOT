@@ -1,4 +1,4 @@
-import { getYtDlpInstance } from '../utils/mediaBinaries.js';
+import { getYtDlpInstance, runYtDlp } from '../utils/mediaBinaries.js';
 import type {
   SpotifyTrackMetadata,
   YouTubeSearchResult,
@@ -331,11 +331,9 @@ export class SpotifyResolver {
   private async searchYouTubeByISRC(isrc: string): Promise<YouTubeSearchResult | null> {
     try {
       const query = `ytsearch1:${isrc}`;
-      const ytExec = getYtDlpInstance();
-      const result: any = await ytExec(query, {
+      const result: any = await runYtDlp(query, {
         dumpSingleJson: true,
         flatPlaylist: true,
-        noWarnings: true,
       });
 
       const entry = result?.entries ? result.entries[0] : result;
@@ -358,11 +356,9 @@ export class SpotifyResolver {
   private async searchYouTube(query: string, maxResults: number = 5): Promise<YouTubeSearchResult[] | null> {
     try {
       const searchQuery = `ytsearch${maxResults}:${query}`;
-      const ytExec = getYtDlpInstance();
-      const result: any = await ytExec(searchQuery, {
+      const result: any = await runYtDlp(searchQuery, {
         dumpSingleJson: true,
         flatPlaylist: true,
-        noWarnings: true,
       });
 
       const entries = result?.entries || [];
