@@ -57,7 +57,7 @@ export declare class CommandHandler {
      */
     resolveMember(guild: FluxerGuild, raw: string): Promise<FluxerMember | null>;
     /**
-     * Helper to resolve a banned user by full tag (Kortex#0164), username (Kortex),
+     * Helper to resolve a banned user by full tag (Kyron#0164), username (Kyron),
      * discriminator (#0164 or 0164), Snowflake ID (1553179766511632384), or mention (<@id>).
      */
     resolveBannedUser(guild: FluxerGuild, raw: string): Promise<{

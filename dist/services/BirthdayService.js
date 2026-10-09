@@ -71,7 +71,7 @@ export class BirthdayService {
                                 title: '🎂 DOĞUM GÜNÜ KUTLAMASI 🎈',
                                 description: `Bugün <@${b.user_id}> aramıza katılışının ve yeni yaşının coşkusunu yaşıyor!\nBütün sunucu olarak tebrik ediyoruz! 🥳🎊`,
                                 color: 0xff69b4, // Hot Pink celebration color
-                                footer: { text: 'Kortex • Doğum Günü Kutlama Sistemi' },
+                                footer: { text: 'Kyron • Doğum Günü Kutlama Sistemi' },
                             },
                         ],
                     });

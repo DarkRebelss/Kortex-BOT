@@ -140,7 +140,7 @@ export function buildHelpPage(pageNum: number, mode: 'user' | 'admin' = 'user'):
     ];
 
     const pageContent = pages[Math.max(0, Math.min(pageNum - 1, pages.length - 1))];
-    const header = `🛡️ **Kortex — Yönetici & Moderatör Komut Rehberi** (Sayfa ${pageNum}/${total})`;
+    const header = `🛡️ **Kyron — Yönetici & Moderatör Komut Rehberi** (Sayfa ${pageNum}/${total})`;
     const separator = '────────────────────────────────────────';
     const navLine = buildNavLine(pageNum, total);
     const footerNote = `💡 Yalnızca Sunucu Sahibi, Yöneticiler ve Moderatörler bu komutları kullanabilir.`;
@@ -237,7 +237,7 @@ export function buildHelpPage(pageNum: number, mode: 'user' | 'admin' = 'user'):
   ];
 
   const pageContent = pages[Math.max(0, Math.min(pageNum - 1, pages.length - 1))];
-  const header = `📖 **Kortex — Kullanıcı Komut Rehberi** (Sayfa ${pageNum}/${total})`;
+  const header = `📖 **Kyron — Kullanıcı Komut Rehberi** (Sayfa ${pageNum}/${total})`;
   const separator = '────────────────────────────────────────';
   const navLine = buildNavLine(pageNum, total);
   const footerNote = `💡 **Yönetici & Moderatörler:** Tüm yönetim ve sistem komutlarını görmek için \`${p}help admin\` kullanabilirsiniz.`;

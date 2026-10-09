@@ -93,7 +93,7 @@ describe('New 20-Feature Pack Deep Verification', () => {
   };
 
   const botMember: FluxerMember = {
-    user: {id: 'bot_id', username: 'Kortex'},
+    user: {id: 'bot_id', username: 'Kyron'},
     roles: ['role_admin'],
     joined_at: new Date().toISOString(),
   };
@@ -487,7 +487,7 @@ describe('New 20-Feature Pack Deep Verification', () => {
 
   describe('6. Invitation and Community Commands', () => {
 
-    it('handles /davet command without [Micup Bot Sayfası], without timestamp, and branded Kortex', async () => {
+    it('handles /davet command without [Micup Bot Sayfası], without timestamp, and branded Kyron', async () => {
       db.updateGuildConfig('guild_test', { bot_channel_id: null, bot_channel_id_2: null });
       const davetMsg: FluxerMessage = {
         id: 'msg_davet_1',
@@ -499,17 +499,17 @@ describe('New 20-Feature Pack Deep Verification', () => {
       await handler.handleMessage(guild, regularMember, botMember, davetMsg);
 
       const davetSent = sentMessages.find((m) =>
-        m.extra?.embeds?.some((e: any) => e.title?.includes('Kortex Topluluk Davet Sistemi')),
+        m.extra?.embeds?.some((e: any) => e.title?.includes('Kyron Topluluk Davet Sistemi')),
       );
       expect(davetSent).toBeDefined();
       const embed = davetSent!.extra.embeds[0];
-      expect(embed.title).toContain('Kortex');
-      expect(embed.description).toContain('Kortex');
+      expect(embed.title).toContain('Kyron');
+      expect(embed.description).toContain('Kyron');
       expect(embed.description).not.toContain('[Micup Bot Sayfası]');
       expect(embed.description).not.toContain('micupBotUrl');
       // Must not have timestamp!
       expect(embed.timestamp).toBeUndefined();
-      expect(embed.footer.text).toContain('Kortex');
+      expect(embed.footer.text).toContain('Kyron');
     });
 
     it('generates welcome card with custom colors, custom logo, custom subtitle, and slogan', async () => {

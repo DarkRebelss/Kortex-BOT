@@ -543,7 +543,7 @@ export class WelcomeCardGenerator {
     ctx.restore();
 
     // Bottom left branding
-    const brandingText = options.brandingText || 'Kortex';
+    const brandingText = options.brandingText || 'Kyron';
     ctx.save();
     ctx.font = `bold 14px ${FONT_FAMILY}`;
     await EmojiCanvasHelper.drawText(ctx, brandingText, textX, 308, {

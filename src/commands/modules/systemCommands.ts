@@ -94,7 +94,7 @@ export async function handleSystemCommands(ctx: CommandContext): Promise<boolean
 
         await api.sendMessage(
           message.channel_id,
-          `🤖 **Kortex Sistem Kanalları Yapılandırması:**\n\n` +
+          `🤖 **Kyron Sistem Kanalları Yapılandırması:**\n\n` +
           `• **1. Genel Bot Kanalı:** ${ch1Text}\n` +
           `• **2. Genel Bot Kanalı:** ${ch2Text}\n` +
           `• **3. Genel Bot Kanalı:** ${ch3Text}\n` +

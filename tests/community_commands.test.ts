@@ -41,7 +41,7 @@ describe('Community Chat Commands & Design Customization Tests', () => {
   };
 
   const botMember: FluxerMember = {
-    user: { id: 'user_bot', username: 'Kortex', discriminator: '0000', bot: true },
+    user: { id: 'user_bot', username: 'Kyron', discriminator: '0000', bot: true },
     roles: ['role_admin'],
     joined_at: new Date().toISOString(),
   };

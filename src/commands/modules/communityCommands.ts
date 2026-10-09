@@ -391,10 +391,10 @@ export async function handleCommunityCommands(ctx: CommandContext): Promise<bool
       const botId = botMember?.user?.id || config.botToken.split('.')[0] || '1553891682385133568';
       const micupInviteUrl = `https://micup.gg/oauth2/authorize?client_id=${botId}&permissions=8&scope=bot`;
       const embed = {
-        title: '🤖 Kortex Topluluk Davet Sistemi',
+        title: '🤖 Kyron Topluluk Davet Sistemi',
         description:
-          `Kortex'i kendi **Micup topluluğunuza** kolayca ekleyebilir, gelişmiş tüm yönetim, koruma ve eğlence modüllerini anında kullanmaya başlayabilirsiniz!\n\n` +
-          `🔗 **[Kortex'i Topluluğuna Ekle](${micupInviteUrl})**\n\n` +
+          `Kyron'i kendi **Micup topluluğunuza** kolayca ekleyebilir, gelişmiş tüm yönetim, koruma ve eğlence modüllerini anında kullanmaya başlayabilirsiniz!\n\n` +
+          `🔗 **[Kyron'i Topluluğuna Ekle](${micupInviteUrl})**\n\n` +
           `✨ **Öne Çıkan Özellikler:**\n` +
           `• 🎵 **Gelişmiş Müzik Sistemi:** Kesintisiz ses, canlı radyolar ve YouTube Mix desteği\n` +
           `• 🛡️ **Kapsamlı Güvenlik:** Anti-Spam, Anti-Link, Küfür, Capslock ve Anti-Raid koruması\n` +
@@ -404,7 +404,7 @@ export async function handleCommunityCommands(ctx: CommandContext): Promise<bool
           `• 📊 **Seviye ve Liderlik:** Özelleştirilebilir seviye kanalı ve XP tablosu\n\n` +
           `*Yönetici veya Topluluğu Yönet yetkiniz olan Micup topluluklarına yukarıdaki bağlantıyı kullanarak botu yetkilendirebilirsiniz.*`,
         color: 0x5865f2,
-        footer: { text: 'Kortex • Gelişmiş Çok Amaçlı Micup Topluluk Botu' },
+        footer: { text: 'Kyron • Gelişmiş Çok Amaçlı Micup Topluluk Botu' },
       };
 
       const components = [
@@ -414,7 +414,7 @@ export async function handleCommunityCommands(ctx: CommandContext): Promise<bool
             {
               type: 2,
               style: 5,
-              label: "Kortex'i Topluluğuna Ekle",
+              label: "Kyron'i Topluluğuna Ekle",
               url: micupInviteUrl,
             },
           ],
@@ -426,7 +426,7 @@ export async function handleCommunityCommands(ctx: CommandContext): Promise<bool
       } catch {
         await api.sendMessage(
           message.channel_id,
-          `🤖 **Kortex Topluluk Davet Bağlantısı:**\n\n${micupInviteUrl}\n\n*Yukarıdaki bağlantıyı tarayıcınızda açarak botu istediğiniz Micup topluluğuna ekleyebilirsiniz.*`,
+          `🤖 **Kyron Topluluk Davet Bağlantısı:**\n\n${micupInviteUrl}\n\n*Yukarıdaki bağlantıyı tarayıcınızda açarak botu istediğiniz Micup topluluğuna ekleyebilirsiniz.*`,
         );
       }
       return true;

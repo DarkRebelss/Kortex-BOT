@@ -75,7 +75,7 @@ describe('Comprehensive Enhancements & User Request Tests', () => {
           id: msgId,
           channel_id: channelId,
           content,
-          author: { id: 'bot_id', username: 'Kortex', discriminator: '0000', bot: true },
+          author: { id: 'bot_id', username: 'Kyron', discriminator: '0000', bot: true },
           timestamp: new Date().toISOString(),
         };
       }),

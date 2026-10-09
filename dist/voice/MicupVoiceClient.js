@@ -135,56 +135,65 @@ export class MicupVoiceClient {
         const FRAME_SIZE = 3840;
         const SAMPLES_PER_CHANNEL = 960;
         let framesDispatched = 0;
+        let isDispatching = false;
         session.audioInterval = setInterval(async () => {
-            if (session.isPaused || !session.source)
+            if (isDispatching)
                 return;
-            // Resume ffmpeg stdout if paused and queue has drained below threshold
-            if (session.ffmpegProcess?.stdout?.isPaused() && session.audioQueue.length < 500) {
-                session.ffmpegProcess.stdout.resume();
-            }
-            // Check if audio has completely finished playing or stream ended
-            if (session.audioQueue.length === 0) {
-                if (session.ffmpegFinished && !session.isStopping) {
-                    const wasStarted = session.audioStarted;
-                    session.audioStarted = false;
-                    session.ffmpegFinished = false;
-                    const cb = session.onEndedCallback;
-                    session.onEndedCallback = undefined;
-                    if (wasStarted) {
-                        console.log(`[MicupVoiceClient] 🎵 Şarkı baştan sona kesintisiz çalındı ve bitti (Sunucu: ${guildId})`);
-                    }
-                    else {
-                        console.warn(`[MicupVoiceClient] ⚠️ Ses akışından veri alınamadı, sonraki parçaya geçiliyor (Sunucu: ${guildId})`);
-                    }
-                    if (cb)
-                        cb();
-                }
-                return;
-            }
-            const chunk = session.audioQueue.shift();
-            if (!chunk || chunk.length < FRAME_SIZE)
-                return;
+            isDispatching = true;
             try {
-                const totalSamples = SAMPLES_PER_CHANNEL * 2;
-                // Allocate a dedicated Int16Array with byteOffset 0 so LiveKit FFI gets the exact audio chunk
-                const int16Array = new Int16Array(totalSamples);
-                const aligned = chunk.byteOffset % 2 === 0 ? chunk : Buffer.from(chunk);
-                const src = new Int16Array(aligned.buffer, aligned.byteOffset, totalSamples);
-                // Standard linear volume scaling (session.volume = 1.0 is full standard volume)
-                const vol = Math.max(0, Math.min(2.0, session.volume !== undefined ? session.volume : 1.0));
-                for (let i = 0; i < totalSamples; i++) {
-                    const scaled = Math.round(src[i] * vol);
-                    int16Array[i] = scaled > 32767 ? 32767 : scaled < -32768 ? -32768 : scaled;
+                if (session.isPaused || !session.source)
+                    return;
+                // Resume ffmpeg stdout if paused and queue has drained below threshold
+                if (session.ffmpegProcess?.stdout?.isPaused() && session.audioQueue.length < 500) {
+                    session.ffmpegProcess.stdout.resume();
                 }
-                const frame = new AudioFrame(int16Array, 48000, 2, SAMPLES_PER_CHANNEL);
-                await session.source.captureFrame(frame);
-                framesDispatched++;
-                if (framesDispatched === 50) {
-                    console.log(`[MicupVoiceClient] 🔊 Ses verisi LiveKit kanalına başarıyla akıyor (Sunucu: ${guildId})`);
+                // Check if audio has completely finished playing or stream ended
+                if (session.audioQueue.length === 0) {
+                    if (session.ffmpegFinished && !session.isStopping && !session.isRecovering) {
+                        const wasStarted = session.audioStarted;
+                        session.audioStarted = false;
+                        session.ffmpegFinished = false;
+                        const cb = session.onEndedCallback;
+                        session.onEndedCallback = undefined;
+                        if (wasStarted) {
+                            console.log(`[MicupVoiceClient] 🎵 Şarkı baştan sona kesintisiz çalındı ve bitti (Sunucu: ${guildId})`);
+                        }
+                        else {
+                            console.warn(`[MicupVoiceClient] ⚠️ Ses akışından veri alınamadı, sonraki parçaya geçiliyor (Sunucu: ${guildId})`);
+                        }
+                        if (cb)
+                            cb();
+                    }
+                    return;
+                }
+                const chunk = session.audioQueue.shift();
+                if (!chunk || chunk.length < FRAME_SIZE)
+                    return;
+                try {
+                    const totalSamples = SAMPLES_PER_CHANNEL * 2;
+                    // Allocate a dedicated Int16Array with byteOffset 0 so LiveKit FFI gets the exact audio chunk
+                    const int16Array = new Int16Array(totalSamples);
+                    const aligned = chunk.byteOffset % 2 === 0 ? chunk : Buffer.from(chunk);
+                    const src = new Int16Array(aligned.buffer, aligned.byteOffset, totalSamples);
+                    // Standard linear volume scaling (session.volume = 1.0 is full standard volume)
+                    const vol = Math.max(0, Math.min(2.0, session.volume !== undefined ? session.volume : 1.0));
+                    for (let i = 0; i < totalSamples; i++) {
+                        const scaled = Math.round(src[i] * vol);
+                        int16Array[i] = scaled > 32767 ? 32767 : scaled < -32768 ? -32768 : scaled;
+                    }
+                    const frame = new AudioFrame(int16Array, 48000, 2, SAMPLES_PER_CHANNEL);
+                    await session.source.captureFrame(frame);
+                    framesDispatched++;
+                    if (framesDispatched === 50) {
+                        console.log(`[MicupVoiceClient] 🔊 Ses verisi LiveKit kanalına başarıyla akıyor (Sunucu: ${guildId})`);
+                    }
+                }
+                catch (err) {
+                    console.error('[MicupVoiceClient] captureFrame hatası:', err.message);
                 }
             }
-            catch (err) {
-                console.error('[MicupVoiceClient] captureFrame hatası:', err.message);
+            finally {
+                isDispatching = false;
             }
         }, 20);
     }
@@ -400,6 +409,8 @@ export class MicupVoiceClient {
                             ytdlErrBuf.includes('bot') ||
                             ytdlErrBuf.includes('429')) {
                             markYouTubeBlocked();
+                            session.isRecovering = true;
+                            session.onEndedCallback = undefined;
                             console.warn(`[MicupVoiceClient] 🔄 YouTube IP engeli algılandı, ses akışı anında SoundCloud'a yönlendiriliyor...`);
                             let fallbackTitle = '';
                             if (queryTarget.includes('youtube.com/watch') || queryTarget.includes('youtu.be/')) {
@@ -418,6 +429,18 @@ export class MicupVoiceClient {
                                 fallbackTitle = queryTarget.replace(/^ytsearch\d*:\s*/i, '').trim();
                             }
                             if (fallbackTitle) {
+                                try {
+                                    ytdlProc?.kill('SIGKILL');
+                                }
+                                catch { }
+                                try {
+                                    ffmpegProc.kill('SIGKILL');
+                                }
+                                catch { }
+                                session.ytdlProcess = undefined;
+                                session.ffmpegProcess = undefined;
+                                session.audioQueue = [];
+                                session.isRecovering = false;
                                 void this.playAudio(guildId, `scsearch1:${fallbackTitle}`, onEnded, seekSeconds, false);
                             }
                         }
@@ -536,6 +559,7 @@ export class MicupVoiceClient {
         const session = this.sessions.get(guildId);
         if (session) {
             session.isStopping = true;
+            session.isRecovering = false;
             session.audioStarted = false;
             session.onEndedCallback = undefined;
             session.ffmpegFinished = false;
@@ -544,14 +568,14 @@ export class MicupVoiceClient {
             session.currentInputUrl = undefined;
             if (session.ytdlProcess) {
                 try {
-                    session.ytdlProcess.kill();
+                    session.ytdlProcess.kill('SIGKILL');
                 }
                 catch { }
                 session.ytdlProcess = undefined;
             }
             if (session.ffmpegProcess) {
                 try {
-                    session.ffmpegProcess.kill();
+                    session.ffmpegProcess.kill('SIGKILL');
                 }
                 catch { }
                 session.ffmpegProcess = undefined;

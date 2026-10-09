@@ -135,7 +135,7 @@ describe('CommandHandler All Commands Deep Verification', () => {
         {
           user: {
             id: '1553179766511632384',
-            username: 'Kortex',
+            username: 'Kyron',
             discriminator: '0164',
           },
           reason: 'Spam ihlali',
@@ -401,10 +401,10 @@ describe('CommandHandler All Commands Deep Verification', () => {
     await sendCommand('/ban Kurban#1234 Sebep 2');
     expect(mockApi.banMember).toHaveBeenCalledWith(guild.id, 'user_target', 'Sebep 2');
 
-    // 3. Unban with exact name and tag: /unban Kortex#0164
-    await sendCommand('/unban Kortex#0164');
+    // 3. Unban with exact name and tag: /unban Kyron#0164
+    await sendCommand('/unban Kyron#0164');
     expect(mockApi.unbanMember).toHaveBeenCalledWith(guild.id, '1553179766511632384');
-    expect(sentMessages[sentMessages.length - 1].content).toContain('Kortex#0164');
+    expect(sentMessages[sentMessages.length - 1].content).toContain('Kyron#0164');
 
     // 4. Unban with discriminator only: /unban #0164
     await sendCommand('/unban #0164');

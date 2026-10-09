@@ -1,12 +1,12 @@
 {
-  "name": "kortex-bot",
+  "name": "kyron-bot",
   "version": "1.0.0",
-  "description": "Kortex - Çok Amaçlı Yönetim, Moderasyon, Müzik & Topluluk Botu",
+  "description": "Kyron - Çok Amaçlı Yönetim, Moderasyon, Müzik & Topluluk Botu",
   "type": "module",
   "main": "dist/index.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/DarkRebelss/Kortex-BOT.git"
+    "url": "https://github.com/DarkRebelss/Kyron-BOT.git"
   },
   "scripts": {
     "build": "tsc",

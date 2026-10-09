@@ -16,7 +16,7 @@ export async function handleModerationCommands(ctx) {
         case 'ban': {
             const targetRaw = args[0];
             if (!targetRaw) {
-                await helpers.sendUsageError(message, '❌ Kullanım: `/ban @kullanıcı veya <ID> [süre] [sebep]` (Örn: `/ban @Kortex 7d Reklam` veya `/ban @Kortex Kural ihlali`)');
+                await helpers.sendUsageError(message, '❌ Kullanım: `/ban @kullanıcı veya <ID> [süre] [sebep]` (Örn: `/ban @Kyron 7d Reklam` veya `/ban @Kyron Kural ihlali`)');
                 return true;
             }
             let targetMember = await helpers.resolveMember(guild, targetRaw);
@@ -72,7 +72,7 @@ export async function handleModerationCommands(ctx) {
         case 'unban': {
             const rawTarget = args.join(' ').trim();
             if (!rawTarget) {
-                await helpers.sendUsageError(message, '❌ Kullanım: `/unban @kullanıcı#etiket veya <ID>` (Örn: `/unban Kortex#0164` veya `/unban 1553179766511632384`)');
+                await helpers.sendUsageError(message, '❌ Kullanım: `/unban @kullanıcı#etiket veya <ID>` (Örn: `/unban Kyron#0164` veya `/unban 1553179766511632384`)');
                 return true;
             }
             // 1. Try to resolve banned user from guild ban list
@@ -307,7 +307,7 @@ export async function handleModerationCommands(ctx) {
                 }
                 let targetMember = null;
                 let count = 1;
-                // Check if last argument is count (e.g. ['@Kortex', '1'])
+                // Check if last argument is count (e.g. ['@Kyron', '1'])
                 if (subArgs.length >= 2 && /^\d+$/.test(subArgs[subArgs.length - 1])) {
                     const countCandidate = Number.parseInt(subArgs[subArgs.length - 1], 10);
                     const userRaw = subArgs.slice(0, -1).join(' ');
@@ -317,7 +317,7 @@ export async function handleModerationCommands(ctx) {
                         count = countCandidate;
                     }
                 }
-                // Check if first argument is count (e.g. ['1', '@Kortex'])
+                // Check if first argument is count (e.g. ['1', '@Kyron'])
                 if (!targetMember && subArgs.length >= 2 && /^\d+$/.test(subArgs[0])) {
                     const countCandidate = Number.parseInt(subArgs[0], 10);
                     const userRaw = subArgs.slice(1).join(' ');
@@ -484,14 +484,14 @@ export async function handleModerationCommands(ctx) {
                 else {
                     targetChannel =
                         guild.channels?.find((c) => c.id === message.channel_id) ||
-                            { id: message.channel_id, name: 'kanal' };
+                        { id: message.channel_id, name: 'kanal' };
                     reason = args.join(' ').trim() || 'Belirtilmedi';
                 }
             }
             else {
                 targetChannel =
                     guild.channels?.find((c) => c.id === message.channel_id) ||
-                        { id: message.channel_id, name: 'kanal' };
+                    { id: message.channel_id, name: 'kanal' };
             }
             const res = await modService.lockChannel(guild, invoker, botMember, targetChannel, reason);
             await api.sendMessage(message.channel_id, res.message);
@@ -519,14 +519,14 @@ export async function handleModerationCommands(ctx) {
                 else {
                     targetChannel =
                         guild.channels?.find((c) => c.id === message.channel_id) ||
-                            { id: message.channel_id, name: 'kanal' };
+                        { id: message.channel_id, name: 'kanal' };
                     reason = args.join(' ').trim() || 'Belirtilmedi';
                 }
             }
             else {
                 targetChannel =
                     guild.channels?.find((c) => c.id === message.channel_id) ||
-                        { id: message.channel_id, name: 'kanal' };
+                    { id: message.channel_id, name: 'kanal' };
             }
             const res = await modService.unlockChannel(guild, invoker, botMember, targetChannel, reason);
             await api.sendMessage(message.channel_id, res.message);
@@ -590,7 +590,7 @@ export async function handleModerationCommands(ctx) {
             if (!targetChannel) {
                 targetChannel =
                     guild.channels?.find((c) => c.id === message.channel_id) ||
-                        { id: message.channel_id, name: 'kanal' };
+                    { id: message.channel_id, name: 'kanal' };
             }
             const res = await modService.setSlowmode(guild, invoker, botMember, targetChannel, seconds, reason);
             await api.sendMessage(message.channel_id, res.message);

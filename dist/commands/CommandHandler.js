@@ -162,7 +162,7 @@ export class CommandHandler {
             const nEn = m.nick ? m.nick.toLowerCase() : '';
             const discrim = m.user.discriminator || '';
             const tag = `${uEn}#${discrim}`;
-            // 1. Tag match (e.g. "Kortex#0164")
+            // 1. Tag match (e.g. "Kyron#0164")
             if (hasHash && discrimPart) {
                 const discrimMatches = discrim === discrimPart || (discrimPart === '0' && discrim === '0000');
                 if (discrimMatches &&
@@ -210,7 +210,7 @@ export class CommandHandler {
         return null;
     }
     /**
-     * Helper to resolve a banned user by full tag (Kortex#0164), username (Kortex),
+     * Helper to resolve a banned user by full tag (Kyron#0164), username (Kyron),
      * discriminator (#0164 or 0164), Snowflake ID (1553179766511632384), or mention (<@id>).
      */
     async resolveBannedUser(guild, raw) {
@@ -255,7 +255,7 @@ export class CommandHandler {
         const lowerCleanEn = cleanRaw.toLowerCase();
         const lowerNameTr = namePart.toLocaleLowerCase('tr');
         const lowerNameEn = namePart.toLowerCase();
-        // Match A: Full tag "Kortex#0164"
+        // Match A: Full tag "Kyron#0164"
         if (hasHash && discrimPart) {
             const matchTag = bans.find((b) => {
                 const uTr = b.user.username.toLocaleLowerCase('tr');
@@ -1153,10 +1153,10 @@ export class CommandHandler {
                         const guild = await this.api.getGuild(interaction.guild_id);
                         hasPerm =
                             guild.owner_id === userId ||
-                                PermissionService.hasPermission(guild, member, Permissions.ADMINISTRATOR) ||
-                                PermissionService.hasPermission(guild, member, Permissions.MANAGE_MESSAGES) ||
-                                PermissionService.hasPermission(guild, member, Permissions.MANAGE_GUILD) ||
-                                PermissionService.hasPermission(guild, member, Permissions.MODERATE_MEMBERS);
+                            PermissionService.hasPermission(guild, member, Permissions.ADMINISTRATOR) ||
+                            PermissionService.hasPermission(guild, member, Permissions.MANAGE_MESSAGES) ||
+                            PermissionService.hasPermission(guild, member, Permissions.MANAGE_GUILD) ||
+                            PermissionService.hasPermission(guild, member, Permissions.MODERATE_MEMBERS);
                     }
                     catch { }
                 }
@@ -1293,11 +1293,11 @@ export class CommandHandler {
             const giveaway = this.db.getGiveawayByMessage(event.channel_id, event.message_id);
             if (giveaway && giveaway.status === 'active') {
                 const member = event.member ||
-                    {
-                        user: { id: event.user_id, username: 'User', discriminator: '0' },
-                        roles: [],
-                        joined_at: new Date().toISOString(),
-                    };
+                {
+                    user: { id: event.user_id, username: 'User', discriminator: '0' },
+                    roles: [],
+                    joined_at: new Date().toISOString(),
+                };
                 await this.giveawayService.handleJoinInteraction(giveaway.id, event.channel_id, event.message_id, member);
                 return true;
             }
@@ -1325,10 +1325,10 @@ export class CommandHandler {
                             const guild = await this.api.getGuild(event.guild_id);
                             hasPerm =
                                 guild.owner_id === event.user_id ||
-                                    PermissionService.hasPermission(guild, event.member, Permissions.ADMINISTRATOR) ||
-                                    PermissionService.hasPermission(guild, event.member, Permissions.MANAGE_MESSAGES) ||
-                                    PermissionService.hasPermission(guild, event.member, Permissions.MANAGE_GUILD) ||
-                                    PermissionService.hasPermission(guild, event.member, Permissions.MODERATE_MEMBERS);
+                                PermissionService.hasPermission(guild, event.member, Permissions.ADMINISTRATOR) ||
+                                PermissionService.hasPermission(guild, event.member, Permissions.MANAGE_MESSAGES) ||
+                                PermissionService.hasPermission(guild, event.member, Permissions.MANAGE_GUILD) ||
+                                PermissionService.hasPermission(guild, event.member, Permissions.MODERATE_MEMBERS);
                         }
                         catch { }
                     }

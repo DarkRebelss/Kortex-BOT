@@ -23,7 +23,7 @@ export async function handleModerationCommands(ctx: CommandContext): Promise<boo
       if (!targetRaw) {
         await helpers.sendUsageError(
           message,
-          '❌ Kullanım: `/ban @kullanıcı veya <ID> [süre] [sebep]` (Örn: `/ban @Kortex 7d Reklam` veya `/ban @Kortex Kural ihlali`)',
+          '❌ Kullanım: `/ban @kullanıcı veya <ID> [süre] [sebep]` (Örn: `/ban @Kyron 7d Reklam` veya `/ban @Kyron Kural ihlali`)',
         );
         return true;
       }
@@ -85,7 +85,7 @@ export async function handleModerationCommands(ctx: CommandContext): Promise<boo
       if (!rawTarget) {
         await helpers.sendUsageError(
           message,
-          '❌ Kullanım: `/unban @kullanıcı#etiket veya <ID>` (Örn: `/unban Kortex#0164` veya `/unban 1553179766511632384`)',
+          '❌ Kullanım: `/unban @kullanıcı#etiket veya <ID>` (Örn: `/unban Kyron#0164` veya `/unban 1553179766511632384`)',
         );
         return true;
       }
@@ -387,7 +387,7 @@ export async function handleModerationCommands(ctx: CommandContext): Promise<boo
         let targetMember: FluxerMember | null = null;
         let count = 1;
 
-        // Check if last argument is count (e.g. ['@Kortex', '1'])
+        // Check if last argument is count (e.g. ['@Kyron', '1'])
         if (subArgs.length >= 2 && /^\d+$/.test(subArgs[subArgs.length - 1])) {
           const countCandidate = Number.parseInt(subArgs[subArgs.length - 1], 10);
           const userRaw = subArgs.slice(0, -1).join(' ');
@@ -398,7 +398,7 @@ export async function handleModerationCommands(ctx: CommandContext): Promise<boo
           }
         }
 
-        // Check if first argument is count (e.g. ['1', '@Kortex'])
+        // Check if first argument is count (e.g. ['1', '@Kyron'])
         if (!targetMember && subArgs.length >= 2 && /^\d+$/.test(subArgs[0])) {
           const countCandidate = Number.parseInt(subArgs[0], 10);
           const userRaw = subArgs.slice(1).join(' ');

@@ -97,7 +97,7 @@ export class OwoService {
                     `💰 **Kazanılacak Ödül:** 500+ Cowoncy & Günlük Seri Bonusu\n\n` +
                     `👉 Hemen **${communityName}** topluluğundaki bir sohbet kanalına giderek \`/w daily\` yaz ve ödülünü kap! 🎉`,
                 color: 0xf1c40f,
-                footer: { text: `Kortex • ${communityName} Günlük Bildirim Sistemi` },
+                footer: { text: `Kyron • ${communityName} Günlük Bildirim Sistemi` },
             };
             let dmDelivered = false;
             try {

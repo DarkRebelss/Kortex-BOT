@@ -198,7 +198,7 @@ export class CommandHandler {
         const discrim = m.user.discriminator || '';
         const tag = `${uEn}#${discrim}`;
 
-        // 1. Tag match (e.g. "Kortex#0164")
+        // 1. Tag match (e.g. "Kyron#0164")
         if (hasHash && discrimPart) {
           const discrimMatches = discrim === discrimPart || (discrimPart === '0' && discrim === '0000');
           if (
@@ -251,7 +251,7 @@ export class CommandHandler {
   }
 
   /**
-   * Helper to resolve a banned user by full tag (Kortex#0164), username (Kortex),
+   * Helper to resolve a banned user by full tag (Kyron#0164), username (Kyron),
    * discriminator (#0164 or 0164), Snowflake ID (1553179766511632384), or mention (<@id>).
    */
   async resolveBannedUser(
@@ -304,7 +304,7 @@ export class CommandHandler {
     const lowerNameTr = namePart.toLocaleLowerCase('tr');
     const lowerNameEn = namePart.toLowerCase();
 
-    // Match A: Full tag "Kortex#0164"
+    // Match A: Full tag "Kyron#0164"
     if (hasHash && discrimPart) {
       const matchTag = bans.find((b) => {
         const uTr = b.user.username.toLocaleLowerCase('tr');

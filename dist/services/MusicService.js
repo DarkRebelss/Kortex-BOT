@@ -663,11 +663,13 @@ export class MusicService {
         const cleanArtist = artist || '';
         const cleanTitle = title || '';
         const searchQuery = `${cleanArtist} ${cleanTitle}`.trim();
-        // 0. Eğer YouTube IP bot koruması devredeyse, hiç YouTube'a bulaşma!
-        // Doğrudan SoundCloud üzerinden anında (0ms gecikmeyle) eşle
-        if (isYouTubeBlocked()) {
+        const cookiePath = path.resolve(process.cwd(), 'cookies.txt');
+        const hasCookies = fs.existsSync(cookiePath) && fs.statSync(cookiePath).size > 0;
+        // 0. Eğer YouTube IP bot koruması devredeyse veya cookies.txt yoksa,
+        // sunucu IP'sinin bot doğrulamasına takılmaması için doğrudan SoundCloud üzerinden anında eşle
+        if (!hasCookies || isYouTubeBlocked()) {
             try {
-                console.log(`[MusicService] ⚡ YouTube IP engeli devrede, Spotify parçası doğrudan SoundCloud ile eşleniyor: "${searchQuery}"`);
+                console.log(`[MusicService] ⚡ Spotify parçası doğrudan SoundCloud ile eşleniyor: "${searchQuery}"`);
                 const scRes = await runYtDlp(`scsearch1:${searchQuery}`, {
                     dumpSingleJson: true,
                     flatPlaylist: true,

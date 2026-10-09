@@ -74,7 +74,7 @@ export async function handleSystemCommands(ctx) {
                 const pollText = cfg?.poll_channel_id ? `<#${cfg.poll_channel_id}>` : '*Ayarlanmadı*';
                 const levelText = cfg?.leveling_channel_id ? `<#${cfg.leveling_channel_id}>` : '*Anlık kanalda*';
                 const bdayText = cfg?.birthday_channel_id ? `<#${cfg.birthday_channel_id}>` : '*Ayarlanmadı*';
-                await api.sendMessage(message.channel_id, `🤖 **Kortex Sistem Kanalları Yapılandırması:**\n\n` +
+                await api.sendMessage(message.channel_id, `🤖 **Kyron Sistem Kanalları Yapılandırması:**\n\n` +
                     `• **1. Genel Bot Kanalı:** ${ch1Text}\n` +
                     `• **2. Genel Bot Kanalı:** ${ch2Text}\n` +
                     `• **3. Genel Bot Kanalı:** ${ch3Text}\n` +

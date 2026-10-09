@@ -261,15 +261,37 @@ export function getYtDlpBinary() {
     return defaultBin;
 }
 /**
+ * Deletes any orphaned .part or -Frag*.part temporary files in the current working directory
+ * to prevent audio corruption or fragment mixing across songs.
+ */
+export function cleanOrphanedPartFiles() {
+    try {
+        const cwd = process.cwd();
+        const files = fs.readdirSync(cwd);
+        for (const f of files) {
+            if (f.endsWith('.part') || f.includes('-Frag') || f.includes('.ytdl')) {
+                try {
+                    fs.unlinkSync(path.join(cwd, f));
+                }
+                catch { }
+            }
+        }
+    }
+    catch { }
+}
+/**
  * Spawns a yt-dlp child process streaming audio directly to stdout ('-o', '-').
  * This is fed directly into FFmpeg stdin ('pipe:0') for zero-latency, reliable playback.
+ * Disables part files and caching to guarantee that songs never leave fragments on disk.
  */
 export function spawnYtDlpStream(target, extraArgs = []) {
+    cleanOrphanedPartFiles();
     const bin = getYtDlpBinary();
     const args = [
-        target,
         '-o', '-',
         '-f', 'bestaudio/best',
+        '--no-part',
+        '--no-cache-dir',
         '--no-warnings',
         '--no-playlist',
         ...extraArgs,
@@ -279,6 +301,7 @@ export function spawnYtDlpStream(target, extraArgs = []) {
     if (fs.existsSync(cookiePath) && fs.statSync(cookiePath).size > 0) {
         args.push('--cookies', cookiePath);
     }
+    args.push('--', target);
     return spawn(bin, args, { stdio: ['ignore', 'pipe', 'pipe'] });
 }
 /**

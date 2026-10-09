@@ -177,8 +177,8 @@ export class GatewayClient {
         token: this.token,
         properties: {
           os: process.platform,
-          browser: 'Kortex',
-          device: 'Kortex',
+          browser: 'Kyron',
+          device: 'Kyron',
         },
         intents: 3276799,
       },

@@ -309,7 +309,7 @@ export async function handleCardCommands(ctx) {
                 }
             }
             // Genel Tasarım Bilgi ve Rehber Menüsü
-            await api.sendMessage(message.channel_id, `🎨 **Kortex Karşılama & Uğurlama Kart Tasarım Menüsü**\n\n` +
+            await api.sendMessage(message.channel_id, `🎨 **Kyron Karşılama & Uğurlama Kart Tasarım Menüsü**\n\n` +
                 `Kart tasarımlarınızı doğrudan aşağıdaki komutlarla kolayca özelleştirebilirsiniz:\n\n` +
                 `🔹 **Hoş Geldin Kartı Tasarımı:**\n` +
                 `• \`/kart-tasarim hosgeldin renk <#hex>\` veya \`/welcome renk <#hex>\`\n` +

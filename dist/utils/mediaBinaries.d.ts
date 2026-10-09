@@ -33,8 +33,14 @@ export declare function clearYouTubeBlock(): void;
  */
 export declare function getYtDlpBinary(): string;
 /**
+ * Deletes any orphaned .part or -Frag*.part temporary files in the current working directory
+ * to prevent audio corruption or fragment mixing across songs.
+ */
+export declare function cleanOrphanedPartFiles(): void;
+/**
  * Spawns a yt-dlp child process streaming audio directly to stdout ('-o', '-').
  * This is fed directly into FFmpeg stdin ('pipe:0') for zero-latency, reliable playback.
+ * Disables part files and caching to guarantee that songs never leave fragments on disk.
  */
 export declare function spawnYtDlpStream(target: string, extraArgs?: string[]): ChildProcess;
 /**
